@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "python kite_oi_bridge.py",
+    "startCommand": "python crude_oi_bridge.py",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 5
   }
