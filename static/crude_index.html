@@ -1,0 +1,3025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Crude Oil OI Bias Monitor — MCX</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:system-ui,-apple-system,sans-serif;background:#f5f5f2;color:#1a1a1a;padding:1.25rem;font-size:14px;}
+h1{font-size:17px;font-weight:500;margin-bottom:1rem;}
+
+/* ── PAGE TABS ── */
+.page-tabs{display:flex;gap:6px;align-items:center;margin:0 0 12px 0;background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:6px;position:sticky;top:0;z-index:50;}
+.tab-btn{font-size:12px;padding:7px 14px;border:0.5px solid transparent;border-radius:8px;background:transparent;color:#666;cursor:pointer;font-weight:500;transition:all .15s;}
+.tab-btn:hover{background:#f0f0ec;color:#185FA5;}
+.tab-btn.active{background:#185FA5;color:#fff;border-color:#185FA5;}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+.tab-hint{margin-left:auto;font-size:11px;color:#888;padding-right:8px;}
+
+
+.status-bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;font-size:12px;color:#666;background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:9px 14px;margin-bottom:12px;}
+.conn-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;background:#ccc;transition:background .3s;}
+.sval{font-weight:500;color:#1a1a1a;}
+.pill-group{display:flex;gap:4px;align-items:center;flex-wrap:wrap;}
+.pill{font-size:12px;padding:3px 10px;border-radius:20px;border:0.5px solid #ccc;cursor:pointer;background:#fff;color:#666;transition:all .15s;}
+.pill.active{background:#185FA5;color:#fff;border-color:#185FA5;}
+.btn{font-size:12px;padding:4px 12px;cursor:pointer;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#444;}
+.btn:hover{background:#f0f0ec;}
+.btn-danger{border-color:#e0a0a0;color:#993C1D;}
+.btn-danger:hover{background:#FAECE7;}
+.btn-primary{border-color:#185FA5;color:#185FA5;}
+.btn-primary:hover{background:#E6F1FB;}
+
+.strike-panel{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;margin-bottom:12px;}
+.strike-panel-title{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;}
+.strike-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.strike-group{display:flex;align-items:center;gap:8px;}
+.strike-group label{font-size:12px;color:#666;white-space:nowrap;}
+select{font-size:13px;padding:5px 10px;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;}
+.strike-badges{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;}
+.strike-chip{font-size:11px;padding:3px 10px;border-radius:20px;border:0.5px solid #ddd;background:#f8f8f5;color:#666;cursor:pointer;transition:all .12s;white-space:nowrap;}
+.strike-chip:hover{border-color:#185FA5;color:#185FA5;}
+.strike-chip.atm{border-color:#534AB7;color:#534AB7;background:#EEEDFE;}
+.strike-chip.s1-active{border-color:#D85A30;color:#712B13;background:#FAECE7;font-weight:500;}
+.strike-chip.s2-active{border-color:#534AB7;color:#2D2680;background:#EEEDFE;font-weight:500;}
+.strike-chip.s3-active{border-color:#1D9E75;color:#085041;background:#E1F5EE;font-weight:500;}
+
+.alert{padding:11px 16px;border-radius:8px;font-size:13px;margin-bottom:10px;display:none;}
+.alert-break{background:#FAEEDA;color:#854F0B;border:0.5px solid #EF9F27;}
+.alert-roll{background:#E6F1FB;color:#185FA5;border:0.5px solid #85B7EB;}
+
+.bias-block{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;margin-bottom:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.bias-big{font-size:24px;font-weight:500;min-width:130px;}
+.bias-desc{font-size:13px;color:#666;flex:1;min-width:180px;}
+.streak{display:flex;gap:3px;align-items:center;flex-wrap:wrap;}
+.sdot{width:11px;height:11px;border-radius:50%;display:inline-block;}
+.streak-label{font-size:12px;color:#666;margin-left:6px;}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.card{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;}
+.card-title{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;}
+.oi-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:0.5px solid #eee;font-size:13px;}
+.oi-row:last-of-type{border-bottom:none;}
+.oi-muted{color:#888;font-size:12px;}
+.bar-wrap{height:6px;background:#eee;border-radius:3px;overflow:hidden;margin-top:8px;}
+.bar{height:100%;border-radius:3px;transition:width .4s;}
+.dom-label{font-size:11px;margin-top:5px;}
+
+/* ── Index chart ── */
+.index-chart-card{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;margin-bottom:12px;}
+.index-chart-title{font-size:13px;font-weight:500;margin-bottom:2px;}
+.index-chart-sub{font-size:11px;color:#888;margin-bottom:8px;}
+.index-legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;}
+.il-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#555;}
+.il-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+
+/* ── OI Movers panel ── */
+.mover-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:0.5px solid #eee;font-size:12px;}
+.mover-row:last-child{border-bottom:none;}
+.mover-time{font-size:11px;color:#888;min-width:38px;text-align:right;font-variant-numeric:tabular-nums;}
+.mover-action{font-size:10px;font-weight:600;min-width:28px;text-transform:uppercase;color:#666;}
+.mover-rank{font-size:11px;color:#bbb;min-width:16px;text-align:right;}
+.mover-strike{font-weight:500;color:#1a1a1a;min-width:52px;}
+.mover-type-badge{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:500;white-space:nowrap;}
+.mover-bar-wrap{flex:1;height:5px;background:#f0f0ec;border-radius:3px;overflow:hidden;min-width:40px;}
+.mover-bar{height:100%;border-radius:3px;transition:width .4s;}
+.mover-delta{font-size:11px;font-weight:500;min-width:70px;text-align:right;font-variant-numeric:tabular-nums;}
+.mover-oi{font-size:10px;color:#aaa;min-width:70px;text-align:right;font-variant-numeric:tabular-nums;}
+.badge-atm{background:#EEEDFE;color:#534AB7;}
+.badge-otm{background:#f0f0ec;color:#666;}
+.badge-itm{background:#E6F1FB;color:#185FA5;}
+
+/* ── Strike activity badge ── */
+.activity-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:500;padding:3px 9px;border-radius:6px;margin-top:6px;}
+.act-lb{background:#E1F5EE;color:#085041;}
+.act-sb{background:#FAECE7;color:#712B13;}
+.act-sc{background:#FAEEDA;color:#854F0B;}
+.act-lu{background:#EAF3DE;color:#3B6D11;}
+.act-n {background:#F1EFE8;color:#5F5E5A;}
+
+/* ── Dual confluence chart grid ── */
+.dual-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
+.conf-card{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;overflow:hidden;}
+.conf-card.bear-card{border-top:2px solid #D85A30;}
+.conf-card.bull-card{border-top:2px solid #1D9E75;}
+.conf-title{font-size:13px;font-weight:500;margin-bottom:2px;}
+.conf-title.bear{color:#712B13;}
+.conf-title.bull{color:#085041;}
+.conf-sub{font-size:11px;color:#888;margin-bottom:8px;}
+.conf-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;}
+.cl-item{display:flex;align-items:center;gap:3px;font-size:10px;color:#666;}
+.cl-sq{width:10px;height:10px;border-radius:2px;flex-shrink:0;}
+.conf-chart-scroll{overflow-x:auto;overflow-y:hidden;width:100%;border-radius:4px;margin-bottom:6px;}
+.conf-chart-wrap{position:relative;width:100%;margin-bottom:6px;}
+.yaxis-overlay{position:absolute;top:0;left:0;pointer-events:none;z-index:10;background:transparent;}
+.conf-chart-area{overflow:visible;display:block;}
+.chart-controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:11px;color:#666;background:#f8f8f5;border:0.5px solid #eee;border-radius:8px;padding:6px 12px;margin-bottom:10px;}
+.chart-controls label{color:#888;}
+.chart-controls input[type=range]{width:80px;cursor:pointer;accent-color:#185FA5;}
+.chart-controls span{font-weight:500;color:#1a1a1a;min-width:28px;display:inline-block;}
+.signal-strip{display:flex;gap:2px;margin-top:6px;align-items:center;}
+.sig-block{flex:1;height:7px;border-radius:2px;}
+.sig-strip-label{font-size:10px;color:#888;margin-left:5px;white-space:nowrap;}
+.conf-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:500;padding:4px 10px;border-radius:6px;margin-top:8px;}
+.cb-sb{background:#FAECE7;color:#712B13;}
+.cb-wb{background:#FAEEDA;color:#854F0B;}
+.cb-sg{background:#E1F5EE;color:#085041;}
+.cb-wg{background:#EAF3DE;color:#3B6D11;}
+.cb-n{background:#F1EFE8;color:#5F5E5A;}
+
+/* ── Confluence summary ── */
+.conf-summary{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;margin-bottom:12px;}
+.conf-sum-title{font-size:12px;font-weight:500;margin-bottom:10px;}
+.conf-sum-row{display:flex;gap:10px;align-items:flex-start;font-size:12px;margin-bottom:7px;padding-bottom:7px;border-bottom:0.5px solid #eee;}
+.conf-sum-row:last-of-type{border-bottom:none;margin-bottom:0;padding-bottom:0;}
+.conf-sum-label{min-width:90px;color:#888;font-size:11px;padding-top:2px;}
+.conf-sum-badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;white-space:nowrap;}
+.conf-sum-text{font-size:11px;color:#666;flex:1;}
+.conf-interp{margin-top:10px;padding-top:10px;border-top:0.5px solid #eee;font-size:12px;color:#666;}
+
+/* ── THREE-CHART LAYOUT ── */
+.three-charts-col{display:flex;flex-direction:column;gap:12px;margin-bottom:12px;}
+
+/* ── OI bar chart cards ── */
+.chart-card{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;margin-bottom:0;}
+.chart-title{font-size:13px;font-weight:500;margin-bottom:2px;}
+.chart-sub{font-size:11px;color:#888;margin-bottom:10px;}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.leg-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#666;}
+.leg-sq{width:10px;height:10px;border-radius:2px;display:inline-block;}
+
+/* Strike chart header with spot badge */
+.chart-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:4px;}
+.chart-header-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+.spot-badge{font-size:11px;padding:2px 9px;border-radius:20px;background:#f0f0ec;color:#555;border:0.5px solid #ddd;font-variant-numeric:tabular-nums;font-weight:500;}
+.spot-badge.s1-badge{background:#FAECE7;color:#712B13;border-color:#f0c0b0;}
+.spot-badge.s2-badge{background:#EEEDFE;color:#2D2680;border-color:#c8c5f0;}
+.spot-badge.s3-badge{background:#E1F5EE;color:#085041;border-color:#a0dcc8;}
+.chart-header-right{display:flex;align-items:center;gap:8px;font-size:12px;}
+
+/* Candle label styles */
+.chart-label-top{font-size:10px;font-weight:600;padding:2px 8px;border-radius:4px;letter-spacing:.02em;}
+.label-s1{background:#FAECE7;color:#712B13;border:0.5px solid #f0c0b0;}
+.label-s2{background:#EEEDFE;color:#2D2680;border:0.5px solid #c8c5f0;}
+.label-s3{background:#E1F5EE;color:#085041;border:0.5px solid #a0dcc8;}
+
+.ltp-bar{display:flex;align-items:center;background:#f8f8f5;border:0.5px solid #e0e0da;border-radius:8px;padding:8px 14px;margin-bottom:10px;position:relative;}
+.ltp-box{display:flex;align-items:baseline;gap:7px;flex:1;}
+.ltp-label{font-size:12px;color:#888;min-width:85px;}
+.ltp-val{font-size:20px;font-weight:500;color:#1a1a1a;font-variant-numeric:tabular-nums;transition:color .3s;}
+.ltp-val.flash-up{color:#1D9E75;} .ltp-val.flash-down{color:#D85A30;}
+.ltp-tag{font-size:10px;color:#aaa;text-transform:uppercase;letter-spacing:.05em;}
+.ltp-divider{width:0.5px;height:32px;background:#ddd;margin:0 20px;}
+.ltp-pulse{width:7px;height:7px;border-radius:50%;background:#ccc;position:absolute;right:14px;top:50%;transform:translateY(-50%);transition:background .3s;}
+.ltp-pulse.live{background:#1D9E75;animation:blink 1.5s infinite;}
+@keyframes blink{0%{opacity:1;transform:translateY(-50%) scale(1)}50%{opacity:.4;transform:translateY(-50%) scale(1.4)}100%{opacity:1;transform:translateY(-50%) scale(1)}}
+
+.chart-scroll-outer{overflow-x:auto;overflow-y:hidden;width:100%;border-radius:4px;margin-bottom:10px;}
+.chart-scroll-inner{min-height:220px;height:auto;min-width:100%;position:relative;overflow:hidden;}
+
+.net-row{display:flex;gap:8px;}
+.net-box{flex:1;background:#f8f8f5;border-radius:8px;padding:8px 10px;}
+.net-label{font-size:11px;color:#888;margin-bottom:3px;}
+.net-val{font-size:14px;font-weight:500;}
+
+.roll-log{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;margin-bottom:12px;}
+.roll-entry{font-size:12px;color:#444;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+.table-card{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;}
+.overflow-x{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+th{text-align:left;padding:5px 8px;border-bottom:0.5px solid #ccc;color:#888;font-weight:400;font-size:11px;white-space:nowrap;}
+td{padding:5px 8px;border-bottom:0.5px solid #eee;white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+
+.bearish{color:#D85A30} .bullish{color:#1D9E75} .neutral{color:#888}
+.dup{color:#1D9E75;font-weight:500} .ddn{color:#D85A30;font-weight:500} .dfl{color:#888}
+.badge{font-size:11px;padding:2px 8px;border-radius:20px;font-weight:500;display:inline-block;}
+.bb{background:#FAECE7;color:#712B13} .bu{background:#E1F5EE;color:#085041}
+.bk{background:#FAEEDA;color:#854F0B} .bn{background:#F1EFE8;color:#5F5E5A}
+.br{background:#E6F1FB;color:#185FA5}
+.session-badge{font-size:10px;padding:1px 6px;border-radius:10px;background:#f0f0ec;color:#888;margin-left:4px;}
+.sig-sb{background:#FAECE7;color:#712B13;font-weight:500;}
+.sig-wb{background:#FAEEDA;color:#854F0B;}
+.sig-sg{background:#E1F5EE;color:#085041;font-weight:500;}
+.sig-wg{background:#EAF3DE;color:#3B6D11;}
+.sig-n{background:#F1EFE8;color:#5F5E5A;}
+
+/* ── Date picker / replay bar ── */
+.date-bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:9px 14px;margin-bottom:12px;font-size:12px;}
+.date-bar label{color:#888;white-space:nowrap;}
+.date-bar input[type=date]{font-size:12px;padding:4px 9px;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;}
+.date-btn{font-size:11px;padding:3px 10px;border-radius:20px;border:0.5px solid #ccc;background:#fff;color:#666;cursor:pointer;white-space:nowrap;transition:all .12s;}
+.date-btn:hover{border-color:#185FA5;color:#185FA5;}
+.date-btn.active{background:#185FA5;color:#fff;border-color:#185FA5;}
+.date-mode-badge{font-size:11px;padding:3px 10px;border-radius:20px;font-weight:500;display:none;}
+.date-mode-badge.historical{background:#FAEEDA;color:#854F0B;border:0.5px solid #EF9F27;display:inline-flex;align-items:center;gap:5px;}
+.date-mode-badge.live{background:#E1F5EE;color:#085041;border:0.5px solid #a0dcc8;display:inline-flex;align-items:center;gap:5px;}
+.date-avail{display:flex;gap:4px;flex-wrap:wrap;margin-top:6px;}
+.date-chip{font-size:11px;padding:2px 9px;border-radius:20px;border:0.5px solid #ddd;background:#f8f8f5;color:#666;cursor:pointer;transition:all .12s;white-space:nowrap;}
+.date-chip:hover{border-color:#185FA5;color:#185FA5;}
+.date-chip.today{border-color:#1D9E75;color:#085041;background:#E1F5EE;}
+.date-chip.selected{background:#185FA5;color:#fff;border-color:#185FA5;}
+.chart-card.strike-s1{border-top:2px solid #D85A30;}
+.chart-card.strike-s2{border-top:2px solid #534AB7;}
+.chart-card.strike-s3{border-top:2px solid #1D9E75;}
+
+@media(max-width:700px){
+  .grid2,.dual-grid{grid-template-columns:1fr;}
+  .chart-scroll-inner{height:180px;}
+  .ltp-divider{margin:0 10px;}
+}
+
+/* ── OPTION CHAIN ── */
+.oc-card{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:1rem 1.25rem;margin-bottom:12px;}
+.oc-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:12px;}
+.oc-title{font-size:13px;font-weight:500;}
+.oc-meta{font-size:11px;color:#888;}
+.oc-pulse{width:7px;height:7px;border-radius:50%;background:#ccc;display:inline-block;margin-right:5px;transition:background .3s;}
+.oc-pulse.live{background:#1D9E75;animation:blink 1.5s infinite;}
+.oc-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.oc-depth-label{font-size:12px;color:#666;}
+.oc-depth-select{font-size:12px;padding:3px 8px;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;}
+
+.oc-scroll{overflow-x:auto;overflow-y:auto;max-height:600px;border-radius:6px;}
+.oc-table{width:100%;border-collapse:collapse;font-size:12px;min-width:820px;}
+.oc-table thead{position:sticky;top:0;z-index:5;}
+
+/* Column groups */
+.oc-th-call{background:#FFF5F0;color:#712B13;text-align:center;padding:6px 8px;border-bottom:1.5px solid #f0c0b0;font-weight:500;font-size:11px;white-space:nowrap;}
+.oc-th-strike{background:#f0f0ec;color:#444;text-align:center;padding:6px 8px;border-bottom:1.5px solid #ddd;font-weight:600;font-size:11px;white-space:nowrap;}
+.oc-th-put{background:#F0FBF5;color:#085041;text-align:center;padding:6px 8px;border-bottom:1.5px solid #a0dcc8;font-weight:500;font-size:11px;white-space:nowrap;}
+
+/* Sub-header row */
+.oc-subth-call{background:#FFF9F7;color:#9a4a2a;text-align:center;padding:4px 8px;border-bottom:0.5px solid #f0d8d0;font-weight:400;font-size:10px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+.oc-subth-strike{background:#f8f8f5;color:#666;text-align:center;padding:4px 8px;border-bottom:0.5px solid #e8e8e4;font-size:10px;white-space:nowrap;}
+.oc-subth-put{background:#F5FBF8;color:#2a7a5a;text-align:center;padding:4px 8px;border-bottom:0.5px solid #c8e8d8;font-weight:400;font-size:10px;text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+
+/* Body cells */
+.oc-td{padding:5px 10px;border-bottom:0.5px solid #f2f2ee;font-variant-numeric:tabular-nums;white-space:nowrap;}
+.oc-td-call{text-align:right;padding-right:10px;}
+.oc-td-strike{text-align:center;font-weight:600;font-size:12px;color:#1a1a1a;padding:5px 14px;}
+.oc-td-put{text-align:left;padding-left:10px;}
+
+/* ATM row highlight */
+.oc-atm-row td{background:#EEEDFE !important;border-top:1.5px solid #534AB7;border-bottom:1.5px solid #534AB7;}
+.oc-atm-row .oc-td-strike{color:#534AB7;font-weight:700;}
+.oc-atm-line{position:relative;}
+.oc-atm-line::after{content:'◄ ATM';position:absolute;right:4px;top:50%;transform:translateY(-50%);font-size:9px;color:#534AB7;font-weight:600;letter-spacing:.03em;}
+
+/* ITM shading */
+.oc-itm-call{background:#FFF0E8;}
+.oc-itm-put{background:#EEF9F4;}
+
+/* LTP flash */
+.oc-ltp{font-weight:500;transition:color .3s;}
+.oc-ltp.flash-up{color:#1D9E75 !important;}
+.oc-ltp.flash-down{color:#D85A30 !important;}
+
+/* OI bar within cell */
+.oc-oi-wrap{display:flex;align-items:center;gap:6px;}
+.oc-oi-num{min-width:52px;}
+.oc-oi-bar-outer{flex:1;height:5px;background:#f0f0ec;border-radius:3px;overflow:hidden;min-width:30px;}
+.oc-oi-bar-inner{height:100%;border-radius:3px;transition:width .5s;}
+.oc-bar-call{background:#D85A30;}
+.oc-bar-put{background:#1D9E75;}
+
+/* LTP change % badge */
+.oc-chg{font-size:10px;margin-left:4px;}
+.oc-chg.up{color:#1D9E75;}
+.oc-chg.dn{color:#D85A30;}
+
+/* Spot line */
+.oc-spot-row td{background:#FAEEDA;border-top:1.5px solid #EF9F27;border-bottom:1.5px solid #EF9F27;}
+.oc-spot-row .oc-td-strike{color:#854F0B;font-size:11px;}
+
+/* ── INDEX TICKER (Option Chain page) ── */
+.oc-index-ticker{display:flex;align-items:center;gap:0;background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:10px 16px;margin-bottom:12px;flex-wrap:wrap;gap:12px;}
+.oc-ticker-block{display:flex;align-items:baseline;gap:6px;}
+.oc-ticker-label{font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;}
+.oc-ticker-val{font-size:22px;font-weight:600;color:#1a1a1a;font-variant-numeric:tabular-nums;transition:color .25s;}
+.oc-ticker-val.flash-up{color:#1D9E75;} .oc-ticker-val.flash-down{color:#D85A30;}
+.oc-ticker-chg{font-size:13px;font-weight:500;font-variant-numeric:tabular-nums;}
+.oc-ticker-chg.up{color:#1D9E75;} .oc-ticker-chg.dn{color:#D85A30;}
+.oc-ticker-divider{width:0.5px;height:36px;background:#eee;}
+.oc-ticker-meta{font-size:11px;color:#888;}
+.oc-ticker-meta span{color:#1a1a1a;font-weight:500;}
+.oc-ticker-dot{width:7px;height:7px;border-radius:50%;background:#ccc;margin-right:4px;display:inline-block;vertical-align:middle;transition:background .3s;}
+.oc-ticker-dot.live{background:#1D9E75;animation:blink 1.5s infinite;}
+
+/* ── MAX PAIN ── */
+.oc-maxpain-card{background:#fff;border:0.5px solid #ddd;border-radius:10px;padding:12px 16px;margin-bottom:12px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.oc-mp-block{display:flex;flex-direction:column;gap:2px;}
+.oc-mp-label{font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.04em;}
+.oc-mp-val{font-size:18px;font-weight:600;color:#534AB7;font-variant-numeric:tabular-nums;}
+.oc-mp-sub{font-size:11px;color:#888;}
+.oc-mp-divider{width:0.5px;height:40px;background:#eee;}
+.oc-mp-bar-wrap{flex:1;min-width:220px;}
+.oc-mp-bar-label{display:flex;justify-content:space-between;font-size:10px;color:#888;margin-bottom:3px;}
+.oc-mp-track{height:8px;background:#f0f0ec;border-radius:4px;position:relative;overflow:visible;}
+.oc-mp-marker{width:3px;height:14px;background:#534AB7;border-radius:2px;position:absolute;top:-3px;transform:translateX(-50%);transition:left .5s;}
+.oc-mp-spot-marker{width:2px;height:14px;background:#EF9F27;border-radius:2px;position:absolute;top:-3px;transform:translateX(-50%);transition:left .5s;}
+.oc-mp-tooltip{font-size:10px;color:#666;margin-top:4px;}
+
+/* ── TIME VALUE column ── */
+.oc-tv{color:#666;font-size:11px;font-variant-numeric:tabular-nums;}
+.oc-tv-high{color:#D85A30;}
+</style>
+</head>
+<body>
+
+<h1>Crude Oil OI Bias Monitor — MCX</h1>
+
+<!-- Date picker / history replay bar -->
+<div class="date-bar">
+  <label>📅 Date:</label>
+  <input type="date" id="date-picker" onchange="onDatePickerChange(this.value)">
+  <button class="btn btn-primary" onclick="goToToday()" id="today-btn">Today (Live)</button>
+  <span class="date-mode-badge" id="date-mode-badge"></span>
+  <span style="color:#aaa;font-size:11px;" id="date-rows-info"></span>
+  <div style="flex:1;min-width:120px;">
+    <div style="font-size:11px;color:#888;margin-bottom:4px;">Available dates:</div>
+    <div class="date-avail" id="date-chips">Loading...</div>
+  </div>
+</div>
+<div class="status-bar">
+  <span><span class="conn-dot" id="conn-dot"></span><span id="conn-status">Connecting...</span></span>
+  <span>Spot: <span class="sval" id="spot-val">—</span></span>
+  <span>ATM: <span class="sval" id="atm-val">—</span></span>
+  <span>Session: <span class="sval" id="session-id">0</span></span>
+  <span>As of: <span class="sval" id="as-of">—</span></span>
+  <span>Next poll: <span class="sval" id="countdown">—</span></span>
+  <span id="live-candle-status" style="font-size:11px;color:#1D9E75;display:none;">● Live candle forming (<span id="live-elapsed">0</span>s)</span>
+  <span id="rows-info" style="color:#aaa;font-size:11px;"></span>
+  <button class="btn" onclick="fetchAll()">Refresh</button>
+  <button class="btn btn-danger" onclick="resetCSV()">Reset CSV</button>
+  <div class="pill-group">
+    <span class="pill-label" style="font-size:12px;color:#666;">Interval:</span>
+    <span class="pill" data-min="1"  onclick="setIv(this)">1m</span>
+    <span class="pill active" data-min="3"  onclick="setIv(this)">3m</span>
+    <span class="pill" data-min="5"  onclick="setIv(this)">5m</span>
+    <span class="pill" data-min="10" onclick="setIv(this)">10m</span>
+    <span class="pill" data-min="15" onclick="setIv(this)">15m</span>
+  </div>
+</div>
+
+<div class="page-tabs">
+  <button class="tab-btn active" id="tab-dashboard-btn" onclick="switchTab('dashboard')">Dashboard</button>
+  <button class="tab-btn" id="tab-option-chain-btn" onclick="switchTab('option-chain')">Option Chain & OI Movers</button>
+  <span class="tab-hint">Move heavy tables away from the main trading view</span>
+</div>
+
+<div class="tab-panel active" id="tab-dashboard-panel">
+
+<!-- Strike selector (legacy global panel kept for bear/bull OI card summary) -->
+<div class="strike-panel">
+  <div class="strike-panel-title">Strike chips — click to set chart strikes (1st = top chart, 2nd = middle, 3rd = bottom)</div>
+  <div class="strike-row">
+    <button class="btn btn-primary" onclick="resetToDefault()">Reset to ATM ±1 step</button>
+    <span style="font-size:11px;color:#888;">
+      Top: <strong id="chip-s1-label">—</strong> &nbsp;|&nbsp;
+      Mid: <strong id="chip-s2-label">—</strong> &nbsp;|&nbsp;
+      Bot: <strong id="chip-s3-label">—</strong>
+    </span>
+  </div>
+  <div class="strike-badges" id="strike-chips"></div>
+</div>
+
+<!-- Alerts -->
+<div class="alert alert-break" id="alert-break"></div>
+<div class="alert alert-roll"  id="alert-roll"></div>
+
+<!-- Bias -->
+<div class="bias-block">
+  <div class="bias-big neutral" id="bias-big">—</div>
+  <div class="bias-desc" id="bias-desc">Waiting for first reading...</div>
+  <div>
+    <div style="font-size:11px;color:#888;margin-bottom:4px;">Streak (last 12)</div>
+    <div class="streak" id="streak-dots"></div>
+    <div class="streak-label" id="streak-label"></div>
+  </div>
+</div>
+
+<!-- OI summary cards (uses s2 = ATM/middle chart strike) -->
+<div class="grid2">
+  <div class="card">
+    <div class="card-title" id="bear-card-title">Strike 1 (top)</div>
+    <div class="oi-row"><span class="oi-muted" id="bc-lbl">— CE</span><span id="bc-oi" style="font-weight:500">—</span></div>
+    <div class="oi-row"><span class="oi-muted">CE 30s Δ</span><span id="bc-id">—</span></div>
+    <div class="oi-row"><span class="oi-muted">CE total Δ</span><span id="bc-td">—</span></div>
+    <div class="oi-row"><span class="oi-muted" id="bp-lbl">— PE</span><span id="bp-oi" style="font-weight:500">—</span></div>
+    <div class="oi-row"><span class="oi-muted">PE 30s Δ</span><span id="bp-id">—</span></div>
+    <div class="oi-row"><span class="oi-muted">PE total Δ</span><span id="bp-td">—</span></div>
+    <div style="font-size:11px;color:#888;margin-top:8px;">Call dominance (bearish if &gt;50%)</div>
+    <div class="bar-wrap"><div class="bar" id="bear-bar" style="background:#D85A30;width:50%;"></div></div>
+    <div class="dom-label" id="bear-dom-label"></div>
+  </div>
+  <div class="card">
+    <div class="card-title" id="bull-card-title">Strike 3 (bottom)</div>
+    <div class="oi-row"><span class="oi-muted" id="uc-lbl">— CE</span><span id="uc-oi" style="font-weight:500">—</span></div>
+    <div class="oi-row"><span class="oi-muted">CE 30s Δ</span><span id="uc-id">—</span></div>
+    <div class="oi-row"><span class="oi-muted">CE total Δ</span><span id="uc-td">—</span></div>
+    <div class="oi-row"><span class="oi-muted" id="up-lbl">— PE</span><span id="up-oi" style="font-weight:500">—</span></div>
+    <div class="oi-row"><span class="oi-muted">PE 30s Δ</span><span id="up-id">—</span></div>
+    <div class="oi-row"><span class="oi-muted">PE total Δ</span><span id="up-td">—</span></div>
+    <div style="font-size:11px;color:#888;margin-top:8px;">Put dominance (bullish if &gt;50%)</div>
+    <div class="bar-wrap"><div class="bar" id="bull-bar" style="background:#1D9E75;width:50%;"></div></div>
+    <div class="dom-label" id="bull-dom-label"></div>
+  </div>
+</div>
+
+<!-- ── CRUDE OIL INDEX CHART ── -->
+<div class="index-chart-card">
+  <div class="index-chart-title">Crude Oil (MCX) — price chart · candle colour = dominant OI move</div>
+  <div class="index-chart-sub" id="index-chart-sub">Colour = dominant OI move across both selected strikes (CE building / PE building / CE unwinding / PE unwinding)</div>
+  <div class="index-legend">
+    <span class="il-item"><span class="il-sq" style="background:#8B1A1A;"></span>CE building (strong bear)</span>
+    <span class="il-item"><span class="il-sq" style="background:#EF9F27;"></span>PE unwinding (weak bear)</span>
+    <span class="il-item"><span class="il-sq" style="background:#0F6E56;"></span>PE building (strong bull)</span>
+    <span class="il-item"><span class="il-sq" style="background:#97C459;"></span>CE unwinding (weak bull)</span>
+    <span class="il-item"><span class="il-sq" style="background:#888;"></span>Neutral</span>
+  </div>
+  <div class="conf-chart-wrap">
+    <div class="conf-chart-scroll" id="index-scroll">
+      <div class="conf-chart-area" id="index-chart-area">
+        <svg id="svgIndex" style="display:block;"></svg>
+      </div>
+    </div>
+    <svg id="svgIndexYAxis" class="yaxis-overlay" style="display:block;"></svg>
+  </div>
+  <div class="signal-strip" id="index-strip"></div>
+</div>
+
+<!-- ── CUMULATIVE OI CHANGE CHART ── -->
+<div class="index-chart-card" id="cumoi-card">
+  <div class="index-chart-title">Cumulative OI Change — All Strikes</div>
+  <div class="index-chart-sub" id="cumoi-sub">Aggregate CE and PE OI change from session start across all tracked strikes</div>
+  <div class="index-legend">
+    <span class="il-item"><span class="il-sq" style="background:#1D9E75;border-radius:50%;"></span>Calls (CE) cumulative Δ</span>
+    <span class="il-item"><span class="il-sq" style="background:#D85A30;border-radius:50%;"></span>Puts (PE) cumulative Δ</span>
+  </div>
+  <div class="conf-chart-wrap">
+    <div class="conf-chart-scroll" id="cumoi-scroll">
+      <div class="conf-chart-area" id="cumoi-chart-area">
+        <svg id="svgCumOI" style="display:block;"></svg>
+      </div>
+    </div>
+    <svg id="svgCumOIYAxis" class="yaxis-overlay" style="display:block;"></svg>
+  </div>
+  <div style="display:flex;gap:16px;margin-top:8px;font-size:12px;">
+    <span>Total CE Δ: <span id="cumoi-ce-total" style="font-weight:500;">—</span></span>
+    <span>Total PE Δ: <span id="cumoi-pe-total" style="font-weight:500;">—</span></span>
+    <span>PCR (OI): <span id="cumoi-pcr" style="font-weight:500;">—</span></span>
+  </div>
+</div>
+
+<!-- ── CHART SIZE CONTROLS ── -->
+<div class="chart-controls">
+  <label>OI bar width:</label>
+  <input type="range" id="ctrl-bw" min="8" max="120" value="32" oninput="onCtrlChange()">
+  <span id="ctrl-bw-val">32</span>px
+  <label style="margin-left:10px;">OI chart height:</label>
+  <input type="range" id="ctrl-oih" min="100" max="600" value="220" step="10" oninput="onCtrlChange()">
+  <span id="ctrl-oih-val">220</span>px
+  <label style="margin-left:10px;">Index candle width:</label>
+  <input type="range" id="ctrl-icw" min="4" max="40" value="12" oninput="onCtrlChange()">
+  <span id="ctrl-icw-val">12</span>px
+  <label style="margin-left:10px;">Index height:</label>
+  <input type="range" id="ctrl-ih" min="100" max="400" value="200" step="10" oninput="onCtrlChange()">
+  <span id="ctrl-ih-val">200</span>px
+</div>
+
+<!-- ── DUAL CONFLUENCE CHARTS (kept for bear/bull CE/PE activity) ── -->
+<div class="dual-grid">
+  <div class="conf-card bear-card">
+    <div class="conf-title bear" id="bear-conf-title">Top strike lens</div>
+    <div class="conf-sub" id="bear-conf-sub">CE option LTP price · colour = activity type</div>
+    <div class="chart-header-right" style="justify-content:flex-end;margin-bottom:8px;">
+      <label style="color:#888;white-space:nowrap;">Strike:</label>
+      <select id="bear-conf-select" onchange="onStrikeSelectChange(0, this.value)" style="font-size:12px;padding:3px 8px;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;"></select>
+      <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="resetToDefault()">Reset ATM</button>
+    </div>
+    <div class="conf-legend">
+      <span class="cl-item"><span class="cl-sq" style="background:#0F6E56;"></span>Long Buildup 🔥 (↑price ↑OI)</span>
+      <span class="cl-item"><span class="cl-sq" style="background:#8B1A1A;"></span>Short Buildup 🔥 (↓price ↑OI)</span>
+      <span class="cl-item"><span class="cl-sq" style="background:#EF9F27;"></span>Short Covering ⚠️ (↑price ↓OI)</span>
+      <span class="cl-item"><span class="cl-sq" style="background:#97C459;"></span>Long Unwinding ⚠️ (↓price ↓OI)</span>
+      <span class="cl-item"><span class="cl-sq" style="background:#888;"></span>Neutral</span>
+    </div>
+    <div class="conf-chart-wrap">
+      <div class="conf-chart-scroll" id="bear-conf-scroll">
+        <div class="conf-chart-area" id="bear-chart-area">
+          <svg id="svgBear" style="display:block;"></svg>
+        </div>
+      </div>
+      <svg id="svgBearYAxis" class="yaxis-overlay" style="display:block;"></svg>
+    </div>
+    <div class="signal-strip" id="bear-strip"></div>
+    <div id="bear-conf-badge" class="conf-badge cb-n" style="margin-top:8px;">Waiting for data...</div>
+    <div id="bear-activity-badge" class="activity-badge act-n" style="margin-top:4px;">—</div>
+  </div>
+
+  <div class="conf-card bull-card">
+    <div class="conf-title bull" id="bull-conf-title">Bottom strike lens</div>
+    <div class="conf-sub" id="bull-conf-sub">PE option LTP price · colour = activity type</div>
+    <div class="chart-header-right" style="justify-content:flex-end;margin-bottom:8px;">
+      <label style="color:#888;white-space:nowrap;">Strike:</label>
+      <select id="bull-conf-select" onchange="onStrikeSelectChange(2, this.value)" style="font-size:12px;padding:3px 8px;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;"></select>
+      <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="resetToDefault()">Reset ATM</button>
+    </div>
+    <div class="conf-legend">
+      <span class="cl-item"><span class="cl-sq" style="background:#0F6E56;"></span>Long Buildup 🔥 (↑price ↑OI)</span>
+      <span class="cl-item"><span class="cl-sq" style="background:#8B1A1A;"></span>Short Buildup 🔥 (↓price ↑OI)</span>
+      <span class="cl-item"><span class="cl-sq" style="background:#EF9F27;"></span>Short Covering ⚠️ (↑price ↓OI)</span>
+      <span class="cl-item"><span class="cl-sq" style="background:#97C459;"></span>Long Unwinding ⚠️ (↓price ↓OI)</span>
+      <span class="cl-item"><span class="cl-sq" style="background:#888;"></span>Neutral</span>
+    </div>
+    <div class="conf-chart-wrap">
+      <div class="conf-chart-scroll" id="bull-conf-scroll">
+        <div class="conf-chart-area" id="bull-chart-area">
+          <svg id="svgBull" style="display:block;"></svg>
+        </div>
+      </div>
+      <svg id="svgBullYAxis" class="yaxis-overlay" style="display:block;"></svg>
+    </div>
+    <div class="signal-strip" id="bull-strip"></div>
+    <div id="bull-conf-badge" class="conf-badge cb-n" style="margin-top:8px;">Waiting for data...</div>
+    <div id="bull-activity-badge" class="activity-badge act-n" style="margin-top:4px;">—</div>
+  </div>
+</div>
+
+<!-- Confluence summary -->
+<div class="conf-summary">
+  <div class="conf-sum-title" id="conf-sum-title">Confluence reading — latest interval</div>
+  <div class="conf-sum-row">
+    <span class="conf-sum-label" id="bear-sum-label">Strike 1 —</span>
+    <span class="conf-sum-badge" id="bear-sum-badge">—</span>
+    <span class="conf-sum-text" id="bear-sum-text">—</span>
+  </div>
+  <div class="conf-sum-row">
+    <span class="conf-sum-label" id="bull-sum-label">Strike 3 —</span>
+    <span class="conf-sum-badge" id="bull-sum-badge">—</span>
+    <span class="conf-sum-text" id="bull-sum-text">—</span>
+  </div>
+  <div class="conf-interp" id="conf-interp">Waiting for first candle...</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     THREE STRIKE OI DELTA CHARTS (stacked vertically)
+     S1 = top (ATM + step by default)
+     S2 = middle (ATM by default)
+     S3 = bottom (ATM - step by default)
+════════════════════════════════════════════════════════════════ -->
+<div class="three-charts-col">
+
+  <!-- ── CHART 1 (top, ATM+1 by default) ── -->
+  <div class="chart-card strike-s1">
+    <div class="chart-header">
+      <div class="chart-header-left">
+        <div class="chart-title" id="s1-chart-title">Strike — CE vs PE OI delta</div>
+        <span class="chart-label-top label-s1">▲ Higher</span>
+        <span class="spot-badge s1-badge" id="s1-spot-badge">CrudeOil —</span>
+      </div>
+      <div class="chart-header-right">
+        <label style="color:#888;white-space:nowrap;">Strike:</label>
+        <select id="s1-select" onchange="onStrikeSelectChange(0, this.value)" style="font-size:12px;padding:3px 8px;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;"></select>
+        <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="resetToDefault()">Reset ATM</button>
+      </div>
+    </div>
+    <div class="chart-sub" id="s1-chart-sub">Waiting...</div>
+    <div class="ltp-bar">
+      <div class="ltp-box"><span class="ltp-label" id="s1-ce-sym">— CE</span><span class="ltp-val" id="s1-ce-ltp">—</span><span class="ltp-tag">LTP</span></div>
+      <div class="ltp-divider"></div>
+      <div class="ltp-box"><span class="ltp-label" id="s1-pe-sym">— PE</span><span class="ltp-val" id="s1-pe-ltp">—</span><span class="ltp-tag">LTP</span></div>
+      <div class="ltp-pulse" id="s1-pulse"></div>
+    </div>
+    <div class="legend">
+      <span class="leg-item"><span class="leg-sq" style="background:#D85A30;"></span>CE building (bearish)</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#93c5e8;"></span>CE unwinding</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#1D9E75;"></span>PE building (bullish)</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#f0a080;"></span>PE unwinding</span>
+    </div>
+    <div style="position:relative;display:flex;">
+      <canvas id="s1YAxis" style="flex-shrink:0;position:sticky;left:0;z-index:10;background:#fff;border-right:0.5px solid #eee;"></canvas>
+      <div class="chart-scroll-outer" id="s1-scroll" style="flex:1;min-width:0;">
+        <div class="chart-scroll-inner" id="s1ChartWrap"><canvas id="s1Chart"></canvas></div>
+      </div>
+    </div>
+    <div class="net-row">
+      <div class="net-box"><div class="net-label">Net CE Δ</div><div class="net-val" id="s1-net-ce">—</div></div>
+      <div class="net-box"><div class="net-label">Net PE Δ</div><div class="net-val" id="s1-net-pe">—</div></div>
+      <div class="net-box"><div class="net-label">Bias</div><div class="net-val" id="s1-score">—</div></div>
+    </div>
+  </div>
+
+  <!-- ── CHART 2 (middle, ATM by default) ── -->
+  <div class="chart-card strike-s2">
+    <div class="chart-header">
+      <div class="chart-header-left">
+        <div class="chart-title" id="s2-chart-title">Strike — CE vs PE OI delta</div>
+        <span class="chart-label-top label-s2">◆ ATM</span>
+        <span class="spot-badge s2-badge" id="s2-spot-badge">CrudeOil —</span>
+      </div>
+      <div class="chart-header-right">
+        <label style="color:#888;white-space:nowrap;">Strike:</label>
+        <select id="s2-select" onchange="onStrikeSelectChange(1, this.value)" style="font-size:12px;padding:3px 8px;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;"></select>
+        <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="resetToDefault()">Reset ATM</button>
+      </div>
+    </div>
+    <div class="chart-sub" id="s2-chart-sub">Waiting...</div>
+    <div class="ltp-bar">
+      <div class="ltp-box"><span class="ltp-label" id="s2-ce-sym">— CE</span><span class="ltp-val" id="s2-ce-ltp">—</span><span class="ltp-tag">LTP</span></div>
+      <div class="ltp-divider"></div>
+      <div class="ltp-box"><span class="ltp-label" id="s2-pe-sym">— PE</span><span class="ltp-val" id="s2-pe-ltp">—</span><span class="ltp-tag">LTP</span></div>
+      <div class="ltp-pulse" id="s2-pulse"></div>
+    </div>
+    <div class="legend">
+      <span class="leg-item"><span class="leg-sq" style="background:#D85A30;"></span>CE building (bearish)</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#93c5e8;"></span>CE unwinding</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#1D9E75;"></span>PE building (bullish)</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#f0a080;"></span>PE unwinding</span>
+    </div>
+    <div style="position:relative;display:flex;">
+      <canvas id="s2YAxis" style="flex-shrink:0;position:sticky;left:0;z-index:10;background:#fff;border-right:0.5px solid #eee;"></canvas>
+      <div class="chart-scroll-outer" id="s2-scroll" style="flex:1;min-width:0;">
+        <div class="chart-scroll-inner" id="s2ChartWrap"><canvas id="s2Chart"></canvas></div>
+      </div>
+    </div>
+    <div class="net-row">
+      <div class="net-box"><div class="net-label">Net CE Δ</div><div class="net-val" id="s2-net-ce">—</div></div>
+      <div class="net-box"><div class="net-label">Net PE Δ</div><div class="net-val" id="s2-net-pe">—</div></div>
+      <div class="net-box"><div class="net-label">Bias</div><div class="net-val" id="s2-score">—</div></div>
+    </div>
+  </div>
+
+  <!-- ── CHART 3 (bottom, ATM-1 by default) ── -->
+  <div class="chart-card strike-s3">
+    <div class="chart-header">
+      <div class="chart-header-left">
+        <div class="chart-title" id="s3-chart-title">Strike — CE vs PE OI delta</div>
+        <span class="chart-label-top label-s3">▼ Lower</span>
+        <span class="spot-badge s3-badge" id="s3-spot-badge">CrudeOil —</span>
+      </div>
+      <div class="chart-header-right">
+        <label style="color:#888;white-space:nowrap;">Strike:</label>
+        <select id="s3-select" onchange="onStrikeSelectChange(2, this.value)" style="font-size:12px;padding:3px 8px;border:0.5px solid #ccc;border-radius:6px;background:#fff;color:#1a1a1a;cursor:pointer;"></select>
+        <button class="btn" style="font-size:11px;padding:3px 8px;" onclick="resetToDefault()">Reset ATM</button>
+      </div>
+    </div>
+    <div class="chart-sub" id="s3-chart-sub">Waiting...</div>
+    <div class="ltp-bar">
+      <div class="ltp-box"><span class="ltp-label" id="s3-ce-sym">— CE</span><span class="ltp-val" id="s3-ce-ltp">—</span><span class="ltp-tag">LTP</span></div>
+      <div class="ltp-divider"></div>
+      <div class="ltp-box"><span class="ltp-label" id="s3-pe-sym">— PE</span><span class="ltp-val" id="s3-pe-ltp">—</span><span class="ltp-tag">LTP</span></div>
+      <div class="ltp-pulse" id="s3-pulse"></div>
+    </div>
+    <div class="legend">
+      <span class="leg-item"><span class="leg-sq" style="background:#D85A30;"></span>CE building (bearish)</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#93c5e8;"></span>CE unwinding</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#1D9E75;"></span>PE building (bullish)</span>
+      <span class="leg-item"><span class="leg-sq" style="background:#f0a080;"></span>PE unwinding</span>
+    </div>
+    <div style="position:relative;display:flex;">
+      <canvas id="s3YAxis" style="flex-shrink:0;position:sticky;left:0;z-index:10;background:#fff;border-right:0.5px solid #eee;"></canvas>
+      <div class="chart-scroll-outer" id="s3-scroll" style="flex:1;min-width:0;">
+        <div class="chart-scroll-inner" id="s3ChartWrap"><canvas id="s3Chart"></canvas></div>
+      </div>
+    </div>
+    <div class="net-row">
+      <div class="net-box"><div class="net-label">Net CE Δ</div><div class="net-val" id="s3-net-ce">—</div></div>
+      <div class="net-box"><div class="net-label">Net PE Δ</div><div class="net-val" id="s3-net-pe">—</div></div>
+      <div class="net-box"><div class="net-label">Bias</div><div class="net-val" id="s3-score">—</div></div>
+    </div>
+  </div>
+
+</div><!-- end three-charts-col -->
+
+<!-- Roll log -->
+<div class="roll-log">
+  <div class="card-title" style="margin-bottom:8px;">Strike roll history</div>
+  <div id="roll-log-body" style="font-size:12px;color:#888;">No rolls today.</div>
+</div>
+
+</div><!-- end tab-dashboard-panel -->
+
+<div class="tab-panel" id="tab-option-chain-panel">
+
+<!-- ── OPTION CHAIN ───────────────────────────────────────────────── -->
+
+<!-- ── MAX PAIN ── -->
+<div class="oc-maxpain-card" id="oc-maxpain-card">
+  <div class="oc-mp-block">
+    <div class="oc-mp-label">Max Pain</div>
+    <div class="oc-mp-val" id="mp-strike">—</div>
+    <div class="oc-mp-sub" id="mp-sub">Calculating…</div>
+  </div>
+  <div class="oc-mp-divider"></div>
+  <div class="oc-mp-block">
+    <div class="oc-mp-label">Total OI Pain</div>
+    <div class="oc-mp-val" style="color:#1a1a1a;font-size:14px;" id="mp-total-pain">—</div>
+    <div class="oc-mp-sub">₹ value at expiry (CE+PE)</div>
+  </div>
+  <div class="oc-mp-divider"></div>
+  <div class="oc-mp-block">
+    <div class="oc-mp-label">Spot vs Max Pain</div>
+    <div class="oc-mp-val" style="font-size:14px;" id="mp-spot-diff">—</div>
+    <div class="oc-mp-sub" id="mp-spot-diff-sub"></div>
+  </div>
+  <div class="oc-mp-bar-wrap">
+    <div class="oc-mp-bar-label"><span id="mp-bar-lo"></span><span>Max Pain</span><span id="mp-bar-hi"></span></div>
+    <div class="oc-mp-track" id="mp-track">
+      <div class="oc-mp-marker" id="mp-marker" style="left:50%;"></div>
+      <div class="oc-mp-spot-marker" id="mp-spot-marker" style="left:50%;"></div>
+    </div>
+    <div class="oc-mp-tooltip"><span style="display:inline-block;width:8px;height:2px;background:#534AB7;border-radius:1px;vertical-align:middle;margin-right:3px;"></span>Max Pain&nbsp;&nbsp;<span style="display:inline-block;width:8px;height:2px;background:#EF9F27;border-radius:1px;vertical-align:middle;margin-right:3px;"></span>Spot</div>
+  </div>
+</div>
+
+<div class="oc-card">
+  <div class="oc-header">
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;">
+      <div>
+        <div class="oc-title" style="display:flex;align-items:center;gap:8px;">
+          <span class="oc-pulse" id="oc-pulse"></span>Option Chain
+          <!-- ── inline CrudeOil mini-ticker ── -->
+          <span style="display:inline-flex;align-items:center;gap:6px;margin-left:6px;padding:3px 10px;background:#f8f8f5;border:0.5px solid #e0e0da;border-radius:20px;font-size:12px;font-weight:400;color:#1a1a1a;">
+            <span class="oc-ticker-dot" id="oc-ticker-dot" style="width:6px;height:6px;flex-shrink:0;"></span>
+            <span style="font-size:11px;color:#888;text-transform:uppercase;letter-spacing:.04em;" id="oc-ticker-index-label">CRUDEOIL</span>
+            <span style="font-size:14px;font-weight:600;font-variant-numeric:tabular-nums;transition:color .25s;" id="oc-ticker-spot">—</span>
+            <span class="oc-ticker-chg" style="font-size:11px;font-weight:500;font-variant-numeric:tabular-nums;" id="oc-ticker-chg"></span>
+            <span style="width:0.5px;height:14px;background:#ddd;display:inline-block;margin:0 2px;"></span>
+            <span style="font-size:11px;color:#888;">ATM: <strong style="color:#534AB7;" id="oc-ticker-atm">—</strong></span>
+            <span style="font-size:11px;color:#888;">Expiry: <span id="oc-ticker-expiry">—</span></span>
+            <span style="font-size:11px;color:#888;">DTE: <span id="oc-ticker-dte">—</span> days</span>
+            <span style="font-size:11px;color:#aaa;margin-left:2px;" id="oc-ticker-time"></span>
+            <span style="width:0.5px;height:14px;background:#ddd;display:inline-block;margin:0 4px;"></span>
+            <span style="font-size:11px;color:#888;">Top Pain: <span id="oc-ticker-top-pain" style="color:#534AB7;font-weight:600;">—</span></span>
+          </span>
+        </div>
+        <div class="oc-meta" id="oc-meta">Waiting for data…</div>
+      </div>
+    </div>
+    <div class="oc-controls">
+      <span class="oc-depth-label">Strikes around ATM:</span>
+      <select class="oc-depth-select" id="oc-depth" onchange="renderOptionChain()">
+        <option value="5">±5</option>
+        <option value="8" selected>±8</option>
+        <option value="12">±12</option>
+        <option value="20">±20</option>
+        <option value="0">All</option>
+      </select>
+      <button class="btn btn-primary" style="font-size:11px;padding:3px 10px;" onclick="scrollOCtoATM()">Jump ATM</button>
+    </div>
+  </div>
+  <div class="oc-scroll" id="oc-scroll">
+    <table class="oc-table" id="oc-table">
+      <thead>
+        <tr>
+          <th class="oc-th-call" colspan="4">CALL</th>
+          <th class="oc-th-strike" rowspan="2" style="border-bottom:1.5px solid #ddd;">Strike</th>
+          <th class="oc-th-put" colspan="4">PUT</th>
+        </tr>
+        <tr>
+          <th class="oc-subth-call" style="text-align:right;">OI</th>
+          <th class="oc-subth-call" style="text-align:right;">Chg OI</th>
+          <th class="oc-subth-call" style="text-align:right;" title="Time Value = LTP − Intrinsic Value">TV</th>
+          <th class="oc-subth-call" style="text-align:right;padding-right:14px;">LTP</th>
+          <th class="oc-subth-put" style="text-align:left;padding-left:14px;">LTP</th>
+          <th class="oc-subth-put" style="text-align:left;" title="Time Value = LTP − Intrinsic Value">TV</th>
+          <th class="oc-subth-put" style="text-align:left;">Chg OI</th>
+          <th class="oc-subth-put" style="text-align:left;">OI</th>
+        </tr>
+      </thead>
+      <tbody id="oc-body">
+        <tr><td colspan="9" style="text-align:center;padding:24px;color:#aaa;font-size:13px;">Waiting for OI data…</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── OI MOVERS PANEL ── -->
+<div class="index-chart-card" id="oi-movers-card">
+  <div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+    <div>
+      <div class="index-chart-title">Top OI Movers — All Strikes</div>
+      <div class="index-chart-sub" id="movers-sub">Strikes with biggest OI increase in selected interval · ranked by absolute change</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;font-size:11px;color:#888;">
+      <span>Total CE Δ: <span id="movers-ce-total" style="font-weight:500;color:#1a1a1a;">—</span></span>
+      <span>Total PE Δ: <span id="movers-pe-total" style="font-weight:500;color:#1a1a1a;">—</span></span>
+      <span>PCR: <span id="movers-pcr" style="font-weight:500;color:#1a1a1a;">—</span></span>
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+    <div>
+      <div style="font-size:11px;font-weight:500;color:#712B13;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:5px;border-bottom:1.5px solid #D85A30;">
+        📞 CE — Calls (Resistance / Short side)
+      </div>
+      <div id="ce-movers-list" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+    <div>
+      <div style="font-size:11px;font-weight:500;color:#085041;text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px;padding-bottom:5px;border-bottom:1.5px solid #1D9E75;">
+        📤 PE — Puts (Support / Long side)
+      </div>
+      <div id="pe-movers-list" style="max-height:400px;overflow-y:auto;"></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end tab-option-chain-panel -->
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script>
+function switchTab(tabName) {
+  ['dashboard', 'option-chain'].forEach(name => {
+    const panel = document.getElementById('tab-' + name + '-panel');
+    const btn = document.getElementById('tab-' + name + '-btn');
+    const active = name === tabName;
+    if (panel) panel.classList.toggle('active', active);
+    if (btn) btn.classList.toggle('active', active);
+  });
+  if (tabName === 'option-chain') {
+    renderOptionChain();
+    setTimeout(scrollOCtoATM, 80);
+    // Refresh ticker + max pain when switching to this tab
+    updateOCTicker(currentSpot, ocExpiryDate);
+    calcMaxPain(currentSpot);
+  }
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────
+const BRIDGE       = '';
+const POLL_OI_SEC  = 30;
+const POLL_HX_SEC  = 60;
+const POLL_LTP_SEC = 1;   // browser pulls latest websocket tick snapshot every second
+const POLL_LIVE_SEC = 1;  // refresh the forming index/option candles every second
+let MIN_BAR_PX   = 32;
+let OI_CHART_H   = 220;
+let INDEX_CANDLE_W = 12;
+let INDEX_H        = 200;
+let INDEX_CANDLE_GAP = 1;
+let ACTIVITY_CANDLE_W = 13;
+let ACTIVITY_CANDLE_GAP = 1;
+
+// ── DATE / REPLAY STATE ───────────────────────────────────────────
+let selectedDate   = null;   // null = live/today mode; 'YYYY-MM-DD' = historical
+let availableDates = [];     // list from /oi/dates
+let isHistoricalMode = false;
+let pollingSuspended = false; // true when viewing historical date
+
+// ── DATE PICKER FUNCTIONS ─────────────────────────────────────────
+
+function todayIST() {
+  // Returns today's date in IST as YYYY-MM-DD
+  const now = new Date();
+  const ist = new Date(now.getTime() + (5.5 * 60 * 60 * 1000));
+  return ist.toISOString().slice(0, 10);
+}
+
+async function fetchAvailableDates() {
+  try {
+    const res = await fetch(BRIDGE + '/oi/dates');
+    if (!res.ok) return;
+    const data = await res.json();
+    availableDates = data.dates || [];
+    renderDateChips();
+  } catch(e) {
+    document.getElementById('date-chips').textContent = 'Unavailable';
+  }
+}
+
+function renderDateChips() {
+  const container = document.getElementById('date-chips');
+  const today = todayIST();
+  if (!availableDates.length) {
+    container.innerHTML = '<span style="color:#aaa;font-size:11px;">No historical data yet</span>';
+    return;
+  }
+  container.innerHTML = availableDates.map(d => {
+    const isToday = d === today;
+    const isSel   = d === selectedDate || (isToday && !selectedDate);
+    let cls = 'date-chip';
+    if (isToday) cls += ' today';
+    if (isSel)   cls += ' selected';
+    const label = isToday ? d + ' (Today)' : d;
+    return `<span class="${cls}" onclick="onDateChipClick('${d}')">${label}</span>`;
+  }).join('');
+}
+
+function onDateChipClick(date) {
+  const today = todayIST();
+  if (date === today) { goToToday(); return; }
+  selectDate(date);
+}
+
+function onDatePickerChange(val) {
+  if (!val) return;
+  const today = todayIST();
+  if (val === today) { goToToday(); return; }
+  selectDate(val);
+}
+
+async function selectDate(date) {
+  selectedDate = date;
+  isHistoricalMode = true;
+  pollingSuspended = true;
+
+  // Update UI
+  document.getElementById('date-picker').value = date;
+  const badge = document.getElementById('date-mode-badge');
+  badge.textContent = '📂 Viewing ' + date + ' — historical replay';
+  badge.className = 'date-mode-badge historical';
+  document.getElementById('today-btn').classList.remove('active');
+  document.getElementById('conn-status').textContent = 'Historical mode — ' + date;
+  document.getElementById('conn-dot').style.background = '#EF9F27';
+  document.getElementById('live-candle-status').style.display = 'none';
+  renderDateChips();
+
+  // Load historical data
+  await loadHistoricalData(date);
+}
+
+async function loadHistoricalData(date) {
+  document.getElementById('date-rows-info').textContent = 'Loading ' + date + '…';
+  try {
+    const res = await fetch(BRIDGE + '/oi/history?date=' + date);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const raw = await res.json();
+    minuteRows = filterMarketRows(raw);
+    document.getElementById('date-rows-info').textContent = minuteRows.length + ' rows for ' + date;
+    document.getElementById('rows-info').textContent = minuteRows.length + ' 1-min rows (historical)';
+
+    // Try to derive strike list from the data itself
+    if (minuteRows.length && allStrikes.length === 0) {
+      _deriveStrikesFromRows(minuteRows);
+    }
+
+    rebuildCharts();
+
+    // Seed ticker open price from first history row
+    if (minuteRows.length) {
+      const firstRow = minuteRows[0];
+      const openSpot = parseFloat(firstRow.spot_open || firstRow.spot_close || 0);
+      if (openSpot > 0) ocTickerSpotOpen = openSpot;
+    }
+  } catch(e) {
+    document.getElementById('date-rows-info').textContent = 'Error loading ' + date;
+  }
+}
+
+function _deriveStrikesFromRows(rows) {
+  // Extract strikes from column names like s24000_ce_oi
+  const sample = rows[rows.length - 1] || rows[0];
+  const strikesSet = new Set();
+  Object.keys(sample).forEach(k => {
+    const m = k.match(/^s(\d+)_ce_oi$/);
+    if (m) strikesSet.add(Number(m[1]));
+  });
+  if (!strikesSet.size) return;
+  allStrikes = Array.from(strikesSet).sort((a,b)=>a-b);
+  if (allStrikes.length >= 2) STRIKE_STEP = allStrikes[1] - allStrikes[0];
+
+  // Find ATM from bear/bull columns in last row
+  const lastRow = rows[rows.length - 1];
+  const bull = lastRow?.bull_strike ? Number(lastRow.bull_strike) : null;
+  const bear = lastRow?.bear_strike ? Number(lastRow.bear_strike) : null;
+  if (bull && bear) {
+    atmStrike = Math.round((bull + bear) / 2 / STRIKE_STEP) * STRIKE_STEP;
+    // clamp to available strikes
+    if (!allStrikes.includes(atmStrike)) atmStrike = allStrikes[Math.floor(allStrikes.length/2)];
+  } else {
+    atmStrike = allStrikes[Math.floor(allStrikes.length/2)];
+  }
+
+  const atmIdx = allStrikes.indexOf(atmStrike);
+  const s2 = atmStrike;
+  const s1 = atmIdx + 1 < allStrikes.length ? allStrikes[atmIdx+1] : allStrikes[Math.min(atmIdx, allStrikes.length-1)];
+  const s3 = atmIdx - 1 >= 0 ? allStrikes[atmIdx-1] : allStrikes[Math.max(0, atmIdx)];
+  defaultStrikes  = [s1, s2, s3];
+  selectedStrikes = [...defaultStrikes];
+  populateStrikeSelectors(allStrikes);
+}
+
+function goToToday() {
+  selectedDate = null;
+  isHistoricalMode = false;
+  pollingSuspended = false;
+
+  const badge = document.getElementById('date-mode-badge');
+  badge.className = 'date-mode-badge live';
+  badge.textContent = '● Live';
+
+  const today = todayIST();
+  document.getElementById('date-picker').value = today;
+  document.getElementById('today-btn').classList.add('active');
+  document.getElementById('date-rows-info').textContent = '';
+  renderDateChips();
+
+  // Reload today's data
+  fetchAll();
+}
+
+// ── MARKET HOURS FILTER ───────────────────────────────────────────
+function isMarketHourLabel(label) {
+  if (!label) return false;
+  const clean = label.replace('*', '').trim();
+  const [h, m] = clean.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return false;
+  const t = h * 60 + m;
+  return t >= (9 * 60 + 0) && t < (23 * 60 + 30);
+}
+function filterMarketRows(rows) {
+  return rows.filter(r => isMarketHourLabel(r.time_label));
+}
+
+function onCtrlChange() {
+  MIN_BAR_PX     = parseInt(document.getElementById('ctrl-bw').value);
+  OI_CHART_H     = parseInt(document.getElementById('ctrl-oih').value);
+  INDEX_H        = parseInt(document.getElementById('ctrl-ih').value);
+  INDEX_CANDLE_W = parseInt(document.getElementById('ctrl-icw').value);
+  document.getElementById('ctrl-bw-val').textContent  = MIN_BAR_PX;
+  document.getElementById('ctrl-oih-val').textContent = OI_CHART_H;
+  document.getElementById('ctrl-ih-val').textContent  = INDEX_H;
+  document.getElementById('ctrl-icw-val').textContent = INDEX_CANDLE_W;
+  rebuildCharts();
+}
+
+// ── SIGNAL COLOURS ────────────────────────────────────────────────
+const SIG_COLOR = {
+  SB: { body:'#8B1A1A', wick:'#6B1111', badge:'cb-sb', label:'CE building', cls:'sig-sb' },
+  WB: { body:'#EF9F27', wick:'#9A6010', badge:'cb-wb', label:'PE unwinding', cls:'sig-wb' },
+  SG: { body:'#0F6E56', wick:'#085041', badge:'cb-sg', label:'PE building',  cls:'sig-sg' },
+  WG: { body:'#97C459', wick:'#3B6D11', badge:'cb-wg', label:'CE unwinding', cls:'sig-wg' },
+  N:  { body:'#888780', wick:'#5F5E5A', badge:'cb-n',  label:'Neutral',      cls:'sig-n'  },
+};
+
+const ACT_COLOR = {
+  LB: { body:'#0F6E56', wick:'#085041', cls:'act-lb', label:'🔥 Long Buildup',    desc:'Strong Bullish — price↑ OI↑' },
+  SB: { body:'#8B1A1A', wick:'#6B1111', cls:'act-sb', label:'🔥 Short Buildup',   desc:'Strong Bearish — price↓ OI↑' },
+  SC: { body:'#EF9F27', wick:'#9A6010', cls:'act-sc', label:'⚠️ Short Covering',  desc:'Weak Bullish — price↑ OI↓'  },
+  LU: { body:'#97C459', wick:'#3B6D11', cls:'act-lu', label:'⚠️ Long Unwinding',  desc:'Weak Bearish — price↓ OI↓'  },
+  N:  { body:'#888780', wick:'#5F5E5A', cls:'act-n',  label:'Neutral',            desc:'No dominant move'            },
+};
+
+function getActivityType(priceOpen, priceClose, oiDelta) {
+  const priceUp = priceClose > priceOpen + 0.5;
+  const priceDn = priceClose < priceOpen - 0.5;
+  const oiUp    = oiDelta >  500;
+  const oiDn    = oiDelta < -500;
+  if (priceUp && oiUp)  return 'LB';
+  if (priceDn && oiUp)  return 'SB';
+  if (priceUp && oiDn)  return 'SC';
+  if (priceDn && oiDn)  return 'LU';
+  return 'N';
+}
+
+function getIndexOISignal(c) {
+  // Use s1 (top) and s3 (bottom) as the bear/bull reference for index colouring
+  const totalCeDelta = (c.s1ce||0) + (c.s3ce||0);
+  const totalPeDelta = (c.s1pe||0) + (c.s3pe||0);
+  const candidates = [
+    { key:'SB', abs: totalCeDelta > 0 ? totalCeDelta : 0 },
+    { key:'WB', abs: totalPeDelta < 0 ? Math.abs(totalPeDelta) : 0 },
+    { key:'SG', abs: totalPeDelta > 0 ? totalPeDelta : 0 },
+    { key:'WG', abs: totalCeDelta < 0 ? Math.abs(totalCeDelta) : 0 },
+  ].filter(x => x.abs > 500).sort((a, b) => b.abs - a.abs);
+  return candidates.length ? candidates[0].key : 'N';
+}
+
+// ── STATE ─────────────────────────────────────────────────────────
+let intervalMin    = 3;
+let minuteRows     = [];
+let biasStreak     = [];
+let currentBias    = null;
+let prevRollCount  = 0;
+let currentSession = 0;
+let allStrikes     = [];
+let atmStrike      = null;
+let STRIKE_STEP    = 50;  // default, overridden from data
+
+// Three independent strikes: [s1=top, s2=mid/ATM, s3=bottom]
+let selectedStrikes = [null, null, null];
+let defaultStrikes  = [null, null, null];
+
+// Chart.js instances for each of the 3 charts
+let chartInstances = [null, null, null];
+
+let lastOIData     = null;
+let liveCandle     = null;
+let latestCandles  = [[], [], []]; // per-strike candle arrays
+let chipClickIdx   = 0;  // 0=s1, 1=s2, 2=s3 (cycles through on chip click)
+const prevLtp      = {};
+let currentSpot    = null;
+
+// ── HELPERS ───────────────────────────────────────────────────────
+const fmt   = n => Math.round(n).toLocaleString('en-IN');
+const fmtD  = n => (n>0?'+':'')+fmt(n);
+const dcls  = n => n>0?'ddn':n<0?'dup':'dfl';
+const dhtml = n => `<span class="${dcls(n)}">${fmtD(n)}</span>`;
+const pf    = v => parseFloat(v)||0;
+const rk    = (strike,type) => `s${strike}_${type.toLowerCase()}`;
+
+// ── INTERVAL SELECTOR ─────────────────────────────────────────────
+function setIv(el) {
+  document.querySelectorAll('.pill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  intervalMin = parseInt(el.dataset.min);
+  rebuildCharts();
+}
+
+// ── STRIKE SELECTOR ───────────────────────────────────────────────
+function populateStrikeSelectors(strikes) {
+  [{id:'s1-select',idx:0},{id:'s2-select',idx:1},{id:'s3-select',idx:2},{id:'bear-conf-select',idx:0},{id:'bull-conf-select',idx:2}].forEach(({id, idx}) => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = '';
+    strikes.forEach(st => {
+      const o = document.createElement('option');
+      o.value = st; o.textContent = st;
+      if (st === selectedStrikes[idx]) o.selected = true;
+      sel.appendChild(o);
+    });
+  });
+
+  // Update chip display
+  const chipsEl = document.getElementById('strike-chips');
+  chipsEl.innerHTML = strikes.map(st => {
+    let cls = 'strike-chip';
+    if (st === atmStrike)          cls += ' atm';
+    if (st === selectedStrikes[0]) cls += ' s1-active';
+    if (st === selectedStrikes[1]) cls += ' s2-active';
+    if (st === selectedStrikes[2]) cls += ' s3-active';
+    return `<span class="${cls}" onclick="onChipClick(${st})" title="Click cycles: top→mid→bottom">${st}</span>`;
+  }).join('');
+
+  // Update chip labels
+  document.getElementById('chip-s1-label').textContent = selectedStrikes[0] || '—';
+  document.getElementById('chip-s2-label').textContent = selectedStrikes[1] || '—';
+  document.getElementById('chip-s3-label').textContent = selectedStrikes[2] || '—';
+}
+
+function onChipClick(strike) {
+  selectedStrikes[chipClickIdx] = strike;
+  chipClickIdx = (chipClickIdx + 1) % 3;
+  refreshDisplay();
+}
+
+function onStrikeSelectChange(idx, value) {
+  selectedStrikes[idx] = parseInt(value);
+  refreshDisplay();
+}
+
+function resetToDefault() {
+  selectedStrikes = [...defaultStrikes];
+  chipClickIdx = 0;
+  refreshDisplay();
+}
+
+function refreshDisplay() {
+  populateStrikeSelectors(allStrikes);
+  if (lastOIData) processSnapshot(lastOIData);
+  rebuildCharts();
+}
+
+// ── UPDATE SPOT BADGES ────────────────────────────────────────────
+function updateSpotBadges() {
+  const spotTxt = currentSpot ? fmt(currentSpot) : '—';
+  ['s1','s2','s3'].forEach(id => {
+    const el = document.getElementById(id + '-spot-badge');
+    if (el) el.textContent = 'CrudeOil ' + spotTxt;
+  });
+}
+
+// ── LTP ───────────────────────────────────────────────────────────
+async function fetchLTP() {
+  try { const res = await fetch(BRIDGE+'/ltp'); if(!res.ok) return; updateLTP(await res.json()); } catch(e) {}
+}
+
+function updateLTP(data) {
+  if (data.spot) {
+    currentSpot = data.spot;
+    document.getElementById('spot-val').textContent = fmt(data.spot);
+    updateSpotBadges();
+
+    // ── Recalculate ATM from live spot ──────────────────────────────
+    // Round spot to nearest STRIKE_STEP — don't wait for /oi poll to update ATM
+    if (allStrikes.length && STRIKE_STEP) {
+      const newAtm = Math.round(data.spot / STRIKE_STEP) * STRIKE_STEP;
+      // Clamp to available strikes
+      const closest = allStrikes.reduce((a, b) => Math.abs(b - data.spot) < Math.abs(a - data.spot) ? b : a);
+      const calcAtm = allStrikes.includes(newAtm) ? newAtm : closest;
+
+      if (calcAtm !== atmStrike) {
+        const atmChanged = true;
+        const prevDefaults = [...defaultStrikes];
+        atmStrike = calcAtm;
+        document.getElementById('atm-val').textContent = atmStrike;
+
+        const atmIdx = allStrikes.indexOf(atmStrike);
+        if (atmIdx >= 0) {
+          const s2 = atmStrike;
+          const s1 = atmIdx + 1 < allStrikes.length ? allStrikes[atmIdx+1] : allStrikes[Math.min(atmIdx, allStrikes.length-1)];
+          const s3 = atmIdx - 1 >= 0 ? allStrikes[atmIdx-1] : allStrikes[Math.max(0, atmIdx)];
+          defaultStrikes = [s1, s2, s3];
+
+          const wasOnDefault = selectedStrikes.every((s, i) => s === prevDefaults[i]);
+          if (wasOnDefault) {
+            selectedStrikes = [...defaultStrikes];
+            populateStrikeSelectors(allStrikes);
+          } else {
+            populateStrikeSelectors(allStrikes);
+          }
+        }
+
+        // Update option chain ATM row highlight
+        renderOptionChain();
+      }
+    }
+  }
+
+  const opts = data.options || {};
+  // Update LTP for all 3 charts
+  [0,1,2].forEach(idx => {
+    const st = selectedStrikes[idx];
+    if (!st) return;
+    const pfx = ['s1','s2','s3'][idx];
+
+    const ceKey = rk(st,'ce'), peKey = rk(st,'pe');
+    const ceD = opts[ceKey], peD = opts[peKey];
+
+    if (ceD) {
+      document.getElementById(pfx+'-ce-sym').textContent = ceD.strike + ' CE';
+      const ltp = ceD.ltp, prev = prevLtp[ceKey]||0;
+      const el = document.getElementById(pfx+'-ce-ltp');
+      el.textContent = ltp ? fmt(ltp) : '—';
+      if (prev && ltp !== prev) { const cls = ltp>prev?'flash-up':'flash-down'; el.classList.add(cls); setTimeout(()=>el.classList.remove(cls),600); }
+      prevLtp[ceKey] = ltp;
+    }
+    if (peD) {
+      document.getElementById(pfx+'-pe-sym').textContent = peD.strike + ' PE';
+      const ltp = peD.ltp, prev = prevLtp[peKey]||0;
+      const el = document.getElementById(pfx+'-pe-ltp');
+      el.textContent = ltp ? fmt(ltp) : '—';
+      if (prev && ltp !== prev) { const cls = ltp>prev?'flash-up':'flash-down'; el.classList.add(cls); setTimeout(()=>el.classList.remove(cls),600); }
+      prevLtp[peKey] = ltp;
+    }
+    const pulse = document.getElementById(pfx+'-pulse');
+    if (pulse && (ceD || peD)) { pulse.classList.add('live'); setTimeout(()=>pulse.classList.remove('live'),1500); }
+  });
+
+  // ── Option Chain: tick-by-tick LTP update
+  updateOptionChainLTP(data);
+
+  // ── Index Ticker (Option Chain tab)
+  updateOCTicker(data.spot, data.expiry_date);
+}
+
+// ── FETCH /oi ─────────────────────────────────────────────────────
+async function fetchOI() {
+  try {
+    const res = await fetch(BRIDGE+'/oi');
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    document.getElementById('conn-dot').style.background='#1D9E75';
+    document.getElementById('conn-status').textContent='Connected';
+    document.getElementById('as-of').textContent = data.as_of||'—';
+    document.getElementById('session-id').textContent = data.session_id??'0';
+    document.getElementById('atm-val').textContent = data.atm_strike??'—';
+    currentSession = data.session_id??0;
+    if (data.spot) { currentSpot = data.spot; document.getElementById('spot-val').textContent = fmt(data.spot); }
+
+    if (allStrikes.length === 0 && data.strikes) {
+      allStrikes = data.strikes.map(Number).sort((a,b)=>a-b);
+      atmStrike  = data.atm_strike;
+
+      // Detect step size from strikes array
+      if (allStrikes.length >= 2) STRIKE_STEP = allStrikes[1] - allStrikes[0];
+
+      // Default: s1=ATM+step (higher), s2=ATM, s3=ATM-step (lower)
+      const atmIdx = allStrikes.indexOf(atmStrike);
+      const s2 = atmStrike;
+      const s1 = atmIdx + 1 < allStrikes.length ? allStrikes[atmIdx + 1] : allStrikes[Math.min(atmIdx, allStrikes.length-1)];
+      const s3 = atmIdx - 1 >= 0 ? allStrikes[atmIdx - 1] : allStrikes[Math.max(0, atmIdx)];
+
+      defaultStrikes  = [s1, s2, s3];
+      selectedStrikes = [...defaultStrikes];
+
+      populateStrikeSelectors(allStrikes);
+    }
+
+    // Refresh ATM default on each /oi poll (strikes might roll)
+    if (data.atm_strike && allStrikes.length) {
+      const newAtm = data.atm_strike;
+      const atmChanged = newAtm !== atmStrike;
+      atmStrike = newAtm;
+      const atmIdx = allStrikes.indexOf(atmStrike);
+      if (atmIdx >= 0) {
+        const s2 = atmStrike;
+        const s1 = atmIdx + 1 < allStrikes.length ? allStrikes[atmIdx + 1] : allStrikes[Math.min(atmIdx, allStrikes.length-1)];
+        const s3 = atmIdx - 1 >= 0 ? allStrikes[atmIdx - 1] : allStrikes[Math.max(0, atmIdx)];
+        const prevDefaults = [...defaultStrikes];
+        defaultStrikes = [s1, s2, s3];
+
+        // Auto-follow ATM: if selected strikes still match the old defaults (user hasn't customised),
+        // update them to track the new ATM.
+        if (atmChanged) {
+          const wasOnDefault = selectedStrikes.every((s, i) => s === prevDefaults[i]);
+          if (wasOnDefault) {
+            selectedStrikes = [...defaultStrikes];
+            populateStrikeSelectors(allStrikes);
+          } else {
+            // Just refresh chips so ATM highlight moves even if user has custom strikes
+            populateStrikeSelectors(allStrikes);
+          }
+        }
+      }
+    }
+
+    // Legacy bear/bull kept so old processSnapshot OI card still works
+    lastOIData = data;
+    processSnapshot(data);
+    updateSpotBadges();
+    return data;
+  } catch(e) {
+    document.getElementById('conn-dot').style.background='#D85A30';
+    document.getElementById('conn-status').textContent='Bridge offline — run crude_oi_bridge.py';
+  }
+}
+
+async function fetchHistory() {
+  if (pollingSuspended) return;   // don't overwrite historical view
+  cdHX = POLL_HX_SEC;
+  try {
+    const url = selectedDate ? (BRIDGE+'/oi/history?date='+selectedDate) : (BRIDGE+'/oi/history');
+    const res = await fetch(url); if(!res.ok) return;
+    const raw = await res.json();
+    minuteRows = filterMarketRows(raw);
+    document.getElementById('rows-info').textContent = minuteRows.length+' 1-min rows (market hours)';
+    // Pre-seed OI deltas from history so CHG OI shows immediately in option chain
+    _seedAllOIDeltasFromHistory();
+    rebuildCharts();
+  } catch(e) {}
+}
+
+// Seed ALL known strike OI deltas from history rows (called after history loads)
+function _seedAllOIDeltasFromHistory() {
+  if (!minuteRows || minuteRows.length < 2) return;
+  const sample = minuteRows[minuteRows.length - 1];
+  Object.keys(sample).forEach(k => {
+    const m = k.match(/^s(\d+)_(ce|pe)_oi$/);
+    if (m) {
+      const key = 's' + m[1] + '_' + m[2];
+      _seedOIDeltaFromHistory(key);
+    }
+    // Also handle _delta field pattern
+    const m2 = k.match(/^s(\d+)_(ce|pe)_delta$/);
+    if (m2) {
+      const key = 's' + m2[1] + '_' + m2[2];
+      _seedOIDeltaFromHistory(key);
+    }
+  });
+}
+
+async function fetchAll() { await fetchOI(); await fetchHistory(); }
+
+// ── FETCH /oi/live-candle ─────────────────────────────────────────
+async function fetchLiveCandle() {
+  try {
+    const res = await fetch(BRIDGE + '/oi/live-candle');
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!data.available || selectedStrikes.some(s=>!s)) {
+      liveCandle = null;
+      document.getElementById('live-candle-status').style.display='none';
+      return;
+    }
+
+    // Build a live candle with fields for all 3 selected strikes
+    liveCandle = {
+      label:   data.time_label,
+      open:    data.spot_open,
+      high:    data.spot_high,
+      low:     data.spot_low,
+      close:   data.spot_close,
+      elapsed: data.elapsed_sec,
+      isLive:  true,
+    };
+
+    // Attach OI deltas for each of the 3 strikes
+    [0,1,2].forEach(idx => {
+      const st = selectedStrikes[idx];
+      const pfx = ['s1','s2','s3'][idx];
+      const ceK = rk(st,'ce'), peK = rk(st,'pe');
+      liveCandle[pfx+'_dce'] = data.deltas[ceK]?.delta || 0;
+      liveCandle[pfx+'_dpe'] = data.deltas[peK]?.delta || 0;
+      // For index OI signal compat
+      liveCandle['s1ce'] = liveCandle['s1_dce'] || 0;
+      liveCandle['s3ce'] = liveCandle['s3_dce'] || 0;
+      liveCandle['s1pe'] = liveCandle['s1_dpe'] || 0;
+      liveCandle['s3pe'] = liveCandle['s3_dpe'] || 0;
+      // LTP from cache
+      liveCandle[pfx+'_bce_ltp_open']  = prevLtp[ceK]||0;
+      liveCandle[pfx+'_bce_ltp_close'] = prevLtp[ceK]||0;
+      liveCandle[pfx+'_bce_ltp_high']  = prevLtp[ceK]||0;
+      liveCandle[pfx+'_bce_ltp_low']   = prevLtp[ceK]||0;
+      liveCandle[pfx+'_bce_oi_delta']  = liveCandle[pfx+'_dce'];
+      liveCandle[pfx+'_upe_ltp_open']  = prevLtp[peK]||0;
+      liveCandle[pfx+'_upe_ltp_close'] = prevLtp[peK]||0;
+      liveCandle[pfx+'_upe_ltp_high']  = prevLtp[peK]||0;
+      liveCandle[pfx+'_upe_ltp_low']   = prevLtp[peK]||0;
+      liveCandle[pfx+'_upe_oi_delta']  = liveCandle[pfx+'_dpe'];
+      // Un-prefixed aliases so historical-candle accessors work on liveCandle too
+      if (idx === 0) {
+        liveCandle.bce_ltp_open  = prevLtp[ceK]||0;
+        liveCandle.bce_ltp_close = prevLtp[ceK]||0;
+        liveCandle.bce_ltp_high  = prevLtp[ceK]||0;
+        liveCandle.bce_ltp_low   = prevLtp[ceK]||0;
+        liveCandle.bce_oi_delta  = liveCandle[pfx+'_dce'];
+      }
+      if (idx === 2) {
+        liveCandle.upe_ltp_open  = prevLtp[peK]||0;
+        liveCandle.upe_ltp_close = prevLtp[peK]||0;
+        liveCandle.upe_ltp_high  = prevLtp[peK]||0;
+        liveCandle.upe_ltp_low   = prevLtp[peK]||0;
+        liveCandle.upe_oi_delta  = liveCandle[pfx+'_dpe'];
+      }
+    });
+
+    document.getElementById('live-candle-status').style.display='inline';
+    document.getElementById('live-elapsed').textContent = data.elapsed_sec;
+    _redrawSVGOnly();
+  } catch(e) {}
+}
+
+function _redrawSVGOnly() {
+  // Redraws SVG charts using the same getters as _doRebuild to stay in sync
+  const s1Candles = latestCandles[0];
+  const s3Candles = latestCandles[2];
+  const allWithLive0 = liveCandle ? [...s1Candles, liveCandle] : s1Candles;
+  const allWithLive2 = liveCandle ? [...s3Candles, liveCandle] : s3Candles;
+  drawIndexChart(liveCandle ? [...latestCandles[1], liveCandle] : latestCandles[1]);
+  // Use identical getters to _doRebuild — fall back through both prefixed and un-prefixed field names
+  const bearSigs = drawStrikeActivityChart('svgBear', allWithLive0,
+    c=>c.s1_bce_ltp_open||c.bce_ltp_open||0, c=>c.s1_bce_ltp_high||c.bce_ltp_high||0,
+    c=>c.s1_bce_ltp_low||c.bce_ltp_low||0,   c=>c.s1_bce_ltp_close||c.bce_ltp_close||0,
+    c=>c.s1_bce_oi_delta||c.bce_oi_delta||0, 'bear-activity-badge');
+  const bullSigs = drawStrikeActivityChart('svgBull', allWithLive2,
+    c=>c.s3_upe_ltp_open||c.upe_ltp_open||0, c=>c.s3_upe_ltp_high||c.upe_ltp_high||0,
+    c=>c.s3_upe_ltp_low||c.upe_ltp_low||0,   c=>c.s3_upe_ltp_close||c.upe_ltp_close||0,
+    c=>c.s3_upe_oi_delta||c.upe_oi_delta||0, 'bull-activity-badge');
+  buildStrip('bear-strip', bearSigs);
+  buildStrip('bull-strip', bullSigs);
+  if (s1Candles.length) updateConfluenceSummary(s1Candles, s3Candles, bearSigs, bullSigs);
+}
+
+async function resetCSV() {
+  if (!confirm('Wipe oi_history.csv?\nAll chart history cleared.')) return;
+  try {
+    const res = await fetch(BRIDGE+'/reset-csv',{method:'POST'}); const data=await res.json();
+    minuteRows=[]; currentSession=0; liveCandle=null;
+    document.getElementById('session-id').textContent='0';
+    document.getElementById('rows-info').textContent='0 rows';
+    document.getElementById('live-candle-status').style.display='none';
+    rebuildCharts(); alert(data.message);
+  } catch(e) { alert('Could not reach bridge.'); }
+}
+
+// ── PROCESS SNAPSHOT ─────────────────────────────────────────────
+function processSnapshot(data) {
+  if (selectedStrikes.some(s=>!s)) return;
+  const opts = data.options || {};
+
+  // Update OI summary cards using s1 (top) and s3 (bottom) as the bear/bull pair
+  const s1 = selectedStrikes[0], s3 = selectedStrikes[2];
+  const bc = opts[rk(s1,'ce')], bp = opts[rk(s1,'pe')];
+  const uc = opts[rk(s3,'ce')], up = opts[rk(s3,'pe')];
+
+  document.getElementById('bear-card-title').textContent = 'Strike 1 — ' + s1;
+  document.getElementById('bull-card-title').textContent = 'Strike 3 — ' + s3;
+
+  if (bc && bp) {
+    document.getElementById('bc-lbl').textContent = s1 + ' CE';
+    document.getElementById('bp-lbl').textContent = s1 + ' PE';
+    const s=(id,v)=>{document.getElementById(id).innerHTML=v;};
+    s('bc-oi',fmt(bc.oi)); s('bc-id',dhtml(bc.oi_change_since_last_poll)); s('bc-td',dhtml(bc.oi_change_total));
+    s('bp-oi',fmt(bp.oi)); s('bp-id',dhtml(bp.oi_change_since_last_poll)); s('bp-td',dhtml(bp.oi_change_total));
+    const bearPct = Math.round(bc.oi/(bc.oi+bp.oi||1)*100);
+    document.getElementById('bear-bar').style.width = bearPct+'%';
+    document.getElementById('bear-dom-label').textContent = bearPct+'% call dominated';
+    document.getElementById('bear-dom-label').className = 'dom-label '+(bearPct>55?'bearish':bearPct<45?'bullish':'neutral');
+  }
+  if (uc && up) {
+    document.getElementById('uc-lbl').textContent = s3 + ' CE';
+    document.getElementById('up-lbl').textContent = s3 + ' PE';
+    const s=(id,v)=>{document.getElementById(id).innerHTML=v;};
+    s('uc-oi',fmt(uc.oi)); s('uc-id',dhtml(uc.oi_change_since_last_poll)); s('uc-td',dhtml(uc.oi_change_total));
+    s('up-oi',fmt(up.oi)); s('up-id',dhtml(up.oi_change_since_last_poll)); s('up-td',dhtml(up.oi_change_total));
+    const bullPct = Math.round(up.oi/(uc.oi+up.oi||1)*100);
+    document.getElementById('bull-bar').style.width = bullPct+'%';
+    document.getElementById('bull-dom-label').textContent = bullPct+'% put dominated';
+    document.getElementById('bull-dom-label').className = 'dom-label '+(bullPct>55?'bullish':bullPct<45?'bearish':'neutral');
+  }
+
+  // Bias uses top vs bottom strike
+  if (bc && bp && uc && up) {
+    const bias = computeBias(bc, bp, uc, up, s1, s3);
+    updateBiasUI(bias);
+    updateStreak(bias);
+  }
+
+  updateRollLog(data.roll_log||[]);
+  populateStrikeSelectors(allStrikes);
+
+  // Update chart titles
+  [0,1,2].forEach(idx => {
+    const st = selectedStrikes[idx];
+    const pfx = ['s1','s2','s3'][idx];
+    document.getElementById(pfx+'-chart-title').textContent = st + ' — CE vs PE OI delta';
+  });
+
+  // Update confluence titles
+  document.getElementById('bear-conf-title').textContent = 'Strike 1 lens — ' + s1;
+  document.getElementById('bull-conf-title').textContent = 'Strike 3 lens — ' + s3;
+  document.getElementById('bear-conf-sub').textContent   = s1 + ' CE option LTP · activity type';
+  document.getElementById('bull-conf-sub').textContent   = s3 + ' PE option LTP · activity type';
+  document.getElementById('bear-sum-label').textContent  = 'Strike 1 ' + s1 + ' CE';
+  document.getElementById('bull-sum-label').textContent  = 'Strike 3 ' + s3 + ' PE';
+
+  // ── Option Chain: update OI from snapshot and re-render
+  updateOptionChainOI(data);
+  renderOptionChain();
+
+  // ── Max Pain (recalculate on every /oi snapshot)
+  calcMaxPain(data.spot || currentSpot);
+
+  // ── Ticker: update expiry from /oi response
+  updateOCTicker(data.spot || currentSpot, data.expiry_date);
+}
+
+function computeBias(bc, bp, uc, up, s1, s3) {
+  const bearCallDom=bc.oi>bp.oi, bullPutDom=up.oi>uc.oi;
+  const bearRatio=bc.oi/(bc.oi+bp.oi||1), bullRatio=up.oi/(uc.oi+up.oi||1);
+  if (bearCallDom&&!bullPutDom) return{signal:'BEARISH',note:'Call OI dominant at '+s1};
+  if (bullPutDom&&!bearCallDom) return{signal:'BULLISH',note:'Put OI dominant at '+s3};
+  if (bearCallDom&&bullPutDom) return bearRatio>bullRatio
+    ?{signal:'BEARISH',note:'Both dominant — top strike stronger ('+Math.round(bearRatio*100)+'%)'}
+    :{signal:'BULLISH',note:'Both dominant — bottom strike stronger ('+Math.round(bullRatio*100)+'%)'};
+  return{signal:'NEUTRAL',note:'No clear OI dominance'};
+}
+
+function updateBiasUI(bias) {
+  const el = document.getElementById('bias-big');
+  if (bias.signal==='BEARISH') { el.textContent='▼ Bearish'; el.className='bias-big bearish'; }
+  else if (bias.signal==='BULLISH') { el.textContent='▲ Bullish'; el.className='bias-big bullish'; }
+  else { el.textContent='— Neutral'; el.className='bias-big neutral'; }
+  document.getElementById('bias-desc').textContent = bias.note;
+}
+
+function updateStreak(bias) {
+  const prev = currentBias;
+  if (!prev||prev==='NEUTRAL') { currentBias=bias.signal; biasStreak=[bias.signal]; }
+  else if (bias.signal===prev) { biasStreak.push(bias.signal); }
+  else if (bias.signal!=='NEUTRAL') { biasStreak.push(bias.signal); showBreakAlert(prev,bias.signal); currentBias=bias.signal; }
+  else { biasStreak.push(bias.signal); }
+  const last=biasStreak[biasStreak.length-1];
+  let cons=0; for(let i=biasStreak.length-1;i>=0;i--){ if(biasStreak[i]===last)cons++; else break; }
+  const isBreak=biasStreak.length>1&&biasStreak[biasStreak.length-1]!==biasStreak[biasStreak.length-2];
+  document.getElementById('streak-dots').innerHTML=biasStreak.slice(-12).map(s=>{
+    const c=s==='BEARISH'?'#D85A30':s==='BULLISH'?'#1D9E75':'#aaa';
+    return `<span class="sdot" style="background:${c};"></span>`;
+  }).join('');
+  const lbl=document.getElementById('streak-label');
+  if (isBreak) { lbl.textContent='Break — '+last+' emerging'; lbl.style.color='#854F0B'; }
+  else { lbl.textContent=cons+' consecutive '+last.toLowerCase(); lbl.style.color=last==='BEARISH'?'#993C1D':last==='BULLISH'?'#0F6E56':'#888'; }
+}
+
+function showBreakAlert(prev,cur) {
+  const box=document.getElementById('alert-break');
+  box.textContent='Bias break: '+prev+' invalidated — '+cur+' emerging.';
+  box.style.display='block'; setTimeout(()=>{box.style.display='none';},20000);
+}
+
+function updateRollLog(rolls) {
+  const body=document.getElementById('roll-log-body');
+  if (!rolls.length) { body.textContent='No rolls today.'; return; }
+  if (rolls.length>prevRollCount) {
+    const r=rolls[rolls.length-1];
+    const box=document.getElementById('alert-roll');
+    box.textContent='Roll at '+r.time+' (session → '+r.session_id+')';
+    box.style.display='block'; setTimeout(()=>{box.style.display='none';},20000);
+    prevRollCount=rolls.length;
+  }
+  body.innerHTML=rolls.map(r=>
+    '<div class="roll-entry">'
+    +'<span class="badge br">'+r.time+'</span>'
+    +'<span class="session-badge">session '+r.session_id+'</span>'
+    +' Bear <strong>'+r.to_bear+'</strong> / Bull <strong>'+r.to_bull+'</strong>'
+    +' <span style="color:#aaa">(was '+r.from_bear+'/'+r.from_bull+')</span>'
+    +'</div>'
+  ).join('');
+}
+
+// ── CANDLE BUILDER (per-strike) ───────────────────────────────────
+function buildCandlesForStrike(rows, mins, strike) {
+  if (!rows.length || !strike) return [];
+  const ceK = `s${strike}_ce`, peK = `s${strike}_pe`;
+  const candles = [];
+  for (let i = 0; i < rows.length; i += mins) {
+    const slice = rows.slice(i, i+mins);
+    const first = slice[0], last = slice[slice.length-1];
+    const opens  = slice.map(r=>pf(r.spot_open)).filter(v=>v>0);
+    const highs  = slice.map(r=>pf(r.spot_high)).filter(v=>v>0);
+    const lows   = slice.map(r=>pf(r.spot_low)).filter(v=>v>0);
+    const closes = slice.map(r=>pf(r.spot_close)).filter(v=>v>0);
+
+    // Try multiple LTP field name patterns — bridge may store as s23950_ce_ltp or other variants
+    const tryLtpField = (base, suffixes) => {
+      for (const s of suffixes) {
+        const field = base + s;
+        if (slice.some(r => pf(r[field]) > 0)) return field;
+      }
+      return null;
+    };
+    const ceLtpField = tryLtpField(ceK, ['_ltp', '_close', '_price']) ||
+                       tryLtpField('s' + strike + '_ce', ['_ltp', '_close']);
+    const peLtpField = tryLtpField(peK, ['_ltp', '_close', '_price']) ||
+                       tryLtpField('s' + strike + '_pe', ['_ltp', '_close']);
+
+    const ceLtps = ceLtpField ? slice.map(r => pf(r[ceLtpField])).filter(v => v > 0) : [];
+    const peLtps = peLtpField ? slice.map(r => pf(r[peLtpField])).filter(v => v > 0) : [];
+    const ceOiStart = pf(first[ceK+'_oi']), ceOiEnd = pf(last[ceK+'_oi']);
+    const peOiStart = pf(first[peK+'_oi']), peOiEnd = pf(last[peK+'_oi']);
+
+    // Build OHLC from an LTP array; if empty, fall back to spot-price shape
+    // so candles always render (they show direction correctly even without per-min LTP)
+    function ltpOHLC(ltpArr) {
+      if (ltpArr.length >= 2) {
+        return { open: ltpArr[0], high: Math.max(...ltpArr), low: Math.min(...ltpArr), close: ltpArr[ltpArr.length-1] };
+      }
+      if (ltpArr.length === 1) {
+        // Single tick — use spot deltas to give the candle shape
+        const ltp = ltpArr[0];
+        if (!opens.length) return { open: ltp, high: ltp, low: ltp, close: ltp };
+        const sO = opens[0], sC = closes[closes.length-1] || sO;
+        const sH = highs.length ? Math.max(...highs) : sO;
+        const sL = lows.length  ? Math.min(...lows)  : sO;
+        const range = sH - sL || 1;
+        // Scale spot movement proportionally around ltp (±0.3% typical option tick)
+        const scale = ltp * 0.003 / range;
+        return {
+          open:  ltp + (sO - sC) * scale,
+          high:  ltp + (sH - sC) * scale,
+          low:   ltp - (sC - sL) * scale,
+          close: ltp,
+        };
+      }
+      // No LTP at all — fall back to spot OHLC so candle shape + activity type still works
+      if (!opens.length) return { open: 0, high: 0, low: 0, close: 0 };
+      return {
+        open:  opens[0],
+        high:  highs.length ? Math.max(...highs) : opens[0],
+        low:   lows.length  ? Math.min(...lows)  : opens[0],
+        close: closes.length ? closes[closes.length-1] : opens[0],
+      };
+    }
+
+    const ceOHLC = ltpOHLC(ceLtps);
+    const peOHLC = ltpOHLC(peLtps);
+
+    candles.push({
+      label: first.time_label,
+      ts:    pf(first.ts)*1000,
+      open:  opens.length ? opens[0] : 0,
+      high:  highs.length ? Math.max(...highs) : 0,
+      low:   lows.length  ? Math.min(...lows)  : 0,
+      close: closes.length ? closes[closes.length-1] : 0,
+      dce:   slice.reduce((s,r)=>s+pf(r[ceK+'_delta']),0),
+      dpe:   slice.reduce((s,r)=>s+pf(r[peK+'_delta']),0),
+      // for index signal compat (used externally)
+      s1ce: 0, s1pe: 0, s3ce: 0, s3pe: 0,
+      // LTP candle data for confluence chart
+      bce_ltp_open:  ceOHLC.open,
+      bce_ltp_high:  ceOHLC.high,
+      bce_ltp_low:   ceOHLC.low,
+      bce_ltp_close: ceOHLC.close,
+      bce_oi_delta:  ceOiEnd - ceOiStart,
+      upe_ltp_open:  peOHLC.open,
+      upe_ltp_high:  peOHLC.high,
+      upe_ltp_low:   peOHLC.low,
+      upe_ltp_close: peOHLC.close,
+      upe_oi_delta:  peOiEnd - peOiStart,
+    });
+  }
+  return candles;
+}
+
+// Build merged candles (for index chart) combining s1 and s3 deltas
+function buildMergedCandles(rows, mins, s1, s2, s3) {
+  const base = buildCandlesForStrike(rows, mins, s2); // use s2 for price OHLC
+  const c1   = buildCandlesForStrike(rows, mins, s1);
+  const c3   = buildCandlesForStrike(rows, mins, s3);
+  base.forEach((c, i) => {
+    c.s1ce = c1[i]?.dce || 0;
+    c.s1pe = c1[i]?.dpe || 0;
+    c.s3ce = c3[i]?.dce || 0;
+    c.s3pe = c3[i]?.dpe || 0;
+  });
+  return base;
+}
+
+function buildStrip(stripId, signals) {
+  const strip = document.getElementById(stripId);
+  strip.innerHTML = '';
+  signals.forEach(k => {
+    const b = document.createElement('div');
+    b.className = 'sig-block';
+    b.style.background = (ACT_COLOR[k]||SIG_COLOR[k]||{body:'#888'}).body;
+    strip.appendChild(b);
+  });
+  const lbl = document.createElement('span');
+  lbl.className = 'sig-strip-label';
+  lbl.textContent = '← signals';
+  strip.appendChild(lbl);
+}
+
+// ── STICKY Y-AXIS OVERLAY ─────────────────────────────────────────
+function drawYAxisOverlay(yAxisSvgId, H, padL, padT, padB, yMin, yMax, ticks) {
+  const ya = document.getElementById(yAxisSvgId);
+  if (!ya) return;
+  ya.innerHTML = '';
+  ya.setAttribute('width',  padL);
+  ya.setAttribute('height', H);
+  ya.setAttribute('viewBox', `0 0 ${padL} ${H}`);
+  const ns = 'http://www.w3.org/2000/svg';
+  const aH = H - padT - padB;
+  const yS = v => padT + aH * (1 - (v - yMin) / (yMax - yMin));
+  const bg = document.createElementNS(ns, 'rect');
+  bg.setAttribute('x',0); bg.setAttribute('y',0);
+  bg.setAttribute('width',padL); bg.setAttribute('height',H);
+  bg.setAttribute('fill','#fff'); bg.setAttribute('opacity','0.92');
+  ya.appendChild(bg);
+  ticks.forEach(price => {
+    const y = yS(price);
+    const txt = document.createElementNS(ns, 'text');
+    txt.setAttribute('x', padL-4); txt.setAttribute('y', y+4);
+    txt.setAttribute('text-anchor','end'); txt.setAttribute('font-size','9');
+    txt.setAttribute('fill','#888780'); txt.textContent = price;
+    ya.appendChild(txt);
+    const tk = document.createElementNS(ns, 'line');
+    tk.setAttribute('x1',padL-3); tk.setAttribute('x2',padL);
+    tk.setAttribute('y1',y); tk.setAttribute('y2',y);
+    tk.setAttribute('stroke','rgba(136,135,128,0.4)'); tk.setAttribute('stroke-width','0.5');
+    ya.appendChild(tk);
+  });
+}
+
+// ── INDEX CHART ───────────────────────────────────────────────────
+function drawIndexChart(candles) {
+  const svgEl = document.getElementById('svgIndex');
+  svgEl.innerHTML = '';
+  if (!candles.length) { svgEl.setAttribute('height','60'); return []; }
+  const scrollEl   = document.getElementById('index-scroll');
+  const containerW = scrollEl ? scrollEl.offsetWidth : 600;
+  const H = INDEX_H;
+  const slotPx = Math.max(INDEX_CANDLE_W + INDEX_CANDLE_GAP, INDEX_CANDLE_W + 1);
+  const W = Math.max(candles.length * slotPx + 60, containerW);
+  svgEl.setAttribute('width', W);
+  svgEl.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svgEl.setAttribute('height', H);
+  svgEl.parentElement.style.width = W + 'px';
+
+  const padL=48,padR=12,padT=10,padB=26;
+  const aW=W-padL-padR, aH=H-padT-padB;
+  const ns='http://www.w3.org/2000/svg';
+  const allP=candles.flatMap(c=>[c.open,c.high,c.low,c.close]).filter(v=>v>0);
+  if (!allP.length) return [];
+  const yMin=Math.min(...allP)-20, yMax=Math.max(...allP)+20;
+  const yS=v=>padT+aH*(1-(v-yMin)/(yMax-yMin));
+
+  for (let i=0;i<=3;i++) {
+    const y=padT+i*aH/3;
+    const price=Math.round(yMax-i*(yMax-yMin)/3);
+    const line=document.createElementNS(ns,'line');
+    line.setAttribute('x1',padL); line.setAttribute('x2',padL+aW);
+    line.setAttribute('y1',y); line.setAttribute('y2',y);
+    line.setAttribute('stroke','rgba(136,135,128,0.15)'); line.setAttribute('stroke-width','0.5');
+    svgEl.appendChild(line);
+    const txt=document.createElementNS(ns,'text');
+    txt.setAttribute('x',padL-4); txt.setAttribute('y',y+4);
+    txt.setAttribute('text-anchor','end'); txt.setAttribute('font-size','9');
+    txt.setAttribute('fill','#888780'); txt.textContent=price;
+    svgEl.appendChild(txt);
+  }
+
+  const slot=slotPx, cW=Math.min(INDEX_CANDLE_W, slot-1);
+  const actSigs=[];
+  candles.forEach((c, i) => {
+    if (!c.open||!c.close) { actSigs.push('N'); return; }
+    const actKey=getIndexOISignal(c);
+    const act=SIG_COLOR[actKey];
+    actSigs.push(actKey);
+    const cx=padL+i*slot+slot/2;
+    const bodyT=yS(Math.max(c.open,c.close));
+    const bodyB=yS(Math.min(c.open,c.close));
+    const bodyH=Math.max(bodyB-bodyT,2);
+
+    const wick=document.createElementNS(ns,'line');
+    wick.setAttribute('x1',cx); wick.setAttribute('x2',cx);
+    wick.setAttribute('y1',yS(c.high||c.close)); wick.setAttribute('y2',yS(c.low||c.close));
+    wick.setAttribute('stroke',act.wick); wick.setAttribute('stroke-width','1.5');
+    if (c.isLive) wick.setAttribute('opacity','0.6');
+    svgEl.appendChild(wick);
+
+    const body=document.createElementNS(ns,'rect');
+    body.setAttribute('x',cx-cW/2); body.setAttribute('y',bodyT);
+    body.setAttribute('width',cW); body.setAttribute('height',bodyH);
+    body.setAttribute('fill',act.body); body.setAttribute('rx','2');
+    if (c.isLive) body.setAttribute('opacity','0.45');
+    svgEl.appendChild(body);
+
+    if (c.isLive) {
+      const outline=document.createElementNS(ns,'rect');
+      outline.setAttribute('x',cx-cW/2); outline.setAttribute('y',bodyT);
+      outline.setAttribute('width',cW); outline.setAttribute('height',bodyH);
+      outline.setAttribute('fill','none');
+      outline.setAttribute('stroke',act.body); outline.setAttribute('stroke-width','1.2');
+      outline.setAttribute('stroke-dasharray','2,2'); outline.setAttribute('rx','2');
+      svgEl.appendChild(outline);
+      const dot=document.createElementNS(ns,'circle');
+      dot.setAttribute('cx',cx); dot.setAttribute('cy',yS(c.high||c.close)-5);
+      dot.setAttribute('r','3'); dot.setAttribute('fill',act.body); dot.setAttribute('opacity','0.9');
+      svgEl.appendChild(dot);
+      const liveTxt=document.createElementNS(ns,'text');
+      liveTxt.setAttribute('x',cx); liveTxt.setAttribute('y',bodyT-4);
+      liveTxt.setAttribute('text-anchor','middle'); liveTxt.setAttribute('font-size','8');
+      liveTxt.setAttribute('fill',act.body); liveTxt.setAttribute('font-weight','600');
+      liveTxt.textContent='LIVE';
+      svgEl.appendChild(liveTxt);
+    }
+
+    if (i%2===0||candles.length<=8) {
+      const lbl=document.createElementNS(ns,'text');
+      lbl.setAttribute('x',cx); lbl.setAttribute('y',H-6);
+      lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size','8.5');
+      lbl.setAttribute('fill','#888780'); lbl.textContent=c.label;
+      svgEl.appendChild(lbl);
+    }
+  });
+
+  const last=candles[candles.length-1];
+  if (last&&last.close) {
+    const curY=yS(last.close);
+    const dl=document.createElementNS(ns,'line');
+    dl.setAttribute('x1',padL); dl.setAttribute('x2',padL+aW);
+    dl.setAttribute('y1',curY); dl.setAttribute('y2',curY);
+    dl.setAttribute('stroke','#378ADD'); dl.setAttribute('stroke-width','0.8');
+    dl.setAttribute('stroke-dasharray','3,2');
+    svgEl.appendChild(dl);
+    const pt=document.createElementNS(ns,'text');
+    pt.setAttribute('x',padL+aW-2); pt.setAttribute('y',curY-3);
+    pt.setAttribute('text-anchor','end'); pt.setAttribute('font-size','9');
+    pt.setAttribute('fill','#185FA5'); pt.textContent=fmt(last.close);
+    svgEl.appendChild(pt);
+  }
+
+  const indexTicks=Array.from({length:4},(_,i)=>Math.round(yMax-i*(yMax-yMin)/3));
+  drawYAxisOverlay('svgIndexYAxis',H,padL,padT,padB,yMin,yMax,indexTicks);
+  document.getElementById('svgIndexYAxis').style.height=H+'px';
+
+  const strip=document.getElementById('index-strip');
+  strip.innerHTML='';
+  actSigs.forEach(k=>{
+    const b=document.createElement('div');
+    b.className='sig-block';
+    b.style.background=SIG_COLOR[k].body;
+    strip.appendChild(b);
+  });
+  const lbl2=document.createElement('span');
+  lbl2.className='sig-strip-label';
+  lbl2.textContent='← signals';
+  strip.appendChild(lbl2);
+
+  return actSigs;
+}
+
+// ── STRIKE ACTIVITY CHART (confluence) ───────────────────────────
+// Uses spot OHLC for candle shape (same as index chart — always available from history rows)
+// Uses OI delta for activity-type colour classification
+// getLtpClose is kept for the last-price dashed line label; getOiDelta drives colour
+function drawStrikeActivityChart(svgId, candles, getLtpOpen, getLtpHigh, getLtpLow, getLtpClose, getOiDelta, actBadgeId) {
+  const svgEl=document.getElementById(svgId);
+  svgEl.innerHTML='';
+  if (!candles.length) { svgEl.setAttribute('height','60'); return []; }
+  const containerW=svgEl.parentElement.offsetWidth||400;
+  const H=200;
+  const slotPx=Math.max(ACTIVITY_CANDLE_W + ACTIVITY_CANDLE_GAP, ACTIVITY_CANDLE_W + 1);
+  const W=Math.max(candles.length*slotPx+60,containerW);
+  svgEl.setAttribute('width',W);
+  svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svgEl.setAttribute('height',H);
+  svgEl.parentElement.style.width=W+'px';
+
+  const padL=48,padR=12,padT=10,padB=26;
+  const aW=W-padL-padR, aH=H-padT-padB;
+  const ns='http://www.w3.org/2000/svg';
+
+  // ── Pick ONE consistent price source for the whole chart.
+  // LTP values (option prices ~50–500) and spot prices (~23000) must NEVER be mixed
+  // or the Y-axis blows out. Check if LTP data is present across most candles first.
+  // Decide price source: if any candle has LTP data → use LTP getters (option prices).
+  // If none do (history rows lack _ltp columns) → use spot OHLC exclusively.
+  // CRITICAL: never mix LTP (~100) and spot (~23800) in the same allP array.
+  const ltpCloseVals = candles.map(c => getLtpClose(c)).filter(v => v > 0);
+  const useLtp = ltpCloseVals.length > 0;
+
+  let getPO, getPH, getPL, getPC;
+  if (useLtp) {
+    // LTP mode — real option prices. For candles without LTP, collapse to the same value
+    // so they don't skew the scale (they'll render as doji/neutral)
+    const medianLtp = ltpCloseVals.sort((a,b)=>a-b)[Math.floor(ltpCloseVals.length/2)];
+    getPO = c => getLtpOpen(c)  || getLtpClose(c) || medianLtp;
+    getPH = c => getLtpHigh(c)  || getLtpClose(c) || medianLtp;
+    getPL = c => getLtpLow(c)   || getLtpClose(c) || medianLtp;
+    getPC = c => getLtpClose(c) || medianLtp;
+  } else {
+    // No LTP anywhere — use spot OHLC for candle shape, OI delta for colour
+    getPO = c => c.open  || 0;
+    getPH = c => c.high  || 0;
+    getPL = c => c.low   || 0;
+    getPC = c => c.close || 0;
+  }
+
+  const allP = candles.flatMap(c => [getPO(c),getPH(c),getPL(c),getPC(c)]).filter(v => v > 0);
+  if (!allP.length) { svgEl.setAttribute('height','60'); return []; }
+
+  const rawMin=Math.min(...allP), rawMax=Math.max(...allP);
+  // Ensure a minimum visible price range so flat sessions still render candle bodies
+  const rangePad=Math.max((rawMax-rawMin)*0.08, rawMax*0.003, 0.5);
+  const yMin=rawMin-rangePad, yMax=rawMax+rangePad;
+  const yS=v=>padT+aH*(1-(v-yMin)/(yMax-yMin));
+
+  // Grid lines
+  for (let i=0;i<=3;i++) {
+    const y=padT+i*aH/3;
+    const price=(yMax-i*(yMax-yMin)/3).toFixed(1);
+    const line=document.createElementNS(ns,'line');
+    line.setAttribute('x1',padL); line.setAttribute('x2',padL+aW);
+    line.setAttribute('y1',y); line.setAttribute('y2',y);
+    line.setAttribute('stroke','rgba(136,135,128,0.15)'); line.setAttribute('stroke-width','0.5');
+    svgEl.appendChild(line);
+    const txt=document.createElementNS(ns,'text');
+    txt.setAttribute('x',padL-4); txt.setAttribute('y',y+4);
+    txt.setAttribute('text-anchor','end'); txt.setAttribute('font-size','9');
+    txt.setAttribute('fill','#888780'); txt.textContent=price;
+    svgEl.appendChild(txt);
+  }
+
+  const slot=slotPx, cW=Math.min(ACTIVITY_CANDLE_W,slot-1);
+  const actSigs=[];
+
+  candles.forEach((c,i) => {
+    const pO=getPO(c), pH=getPH(c), pL=getPL(c), pC=getPC(c);
+    const oiD=getOiDelta(c);
+
+    // Classify by price direction (open vs close) + OI delta — identical to index chart logic
+    if (!pO && !pC) { actSigs.push('N'); return; }
+    const actKey=getActivityType(pO||pC, pC||pO, oiD);
+    const act=ACT_COLOR[actKey];
+    actSigs.push(actKey);
+
+    const cx=padL+i*slot+slot/2;
+    const bodyT=yS(Math.max(pO||pC, pC||pO));
+    const bodyB=yS(Math.min(pO||pC, pC||pO));
+    const bodyH=Math.max(bodyB-bodyT, 2);
+
+    // Wick
+    const wick=document.createElementNS(ns,'line');
+    wick.setAttribute('x1',cx); wick.setAttribute('x2',cx);
+    wick.setAttribute('y1',yS(pH||pC)); wick.setAttribute('y2',yS(pL||pC));
+    wick.setAttribute('stroke',act.wick); wick.setAttribute('stroke-width','1.5');
+    if (c.isLive) wick.setAttribute('opacity','0.6');
+    svgEl.appendChild(wick);
+
+    // Body
+    const body=document.createElementNS(ns,'rect');
+    body.setAttribute('x',cx-cW/2); body.setAttribute('y',bodyT);
+    body.setAttribute('width',cW); body.setAttribute('height',bodyH);
+    body.setAttribute('fill',act.body); body.setAttribute('rx','2');
+    if (c.isLive) body.setAttribute('opacity','0.45');
+    svgEl.appendChild(body);
+
+    // Tooltip
+    const titleEl=document.createElementNS(ns,'title');
+    titleEl.textContent=`${c.label}  ${act.label} | OI Δ ${oiD>0?'+':''}${Math.round(oiD/100)*100} | ${pC.toFixed(1)}`;
+    body.appendChild(titleEl);
+
+    // Live candle decorations
+    if (c.isLive) {
+      const outline=document.createElementNS(ns,'rect');
+      outline.setAttribute('x',cx-cW/2); outline.setAttribute('y',bodyT);
+      outline.setAttribute('width',cW); outline.setAttribute('height',bodyH);
+      outline.setAttribute('fill','none');
+      outline.setAttribute('stroke',act.body); outline.setAttribute('stroke-width','1.2');
+      outline.setAttribute('stroke-dasharray','2,2'); outline.setAttribute('rx','2');
+      svgEl.appendChild(outline);
+      const dot=document.createElementNS(ns,'circle');
+      dot.setAttribute('cx',cx); dot.setAttribute('cy',yS(pH||pC)-5);
+      dot.setAttribute('r','3'); dot.setAttribute('fill',act.body); dot.setAttribute('opacity','0.9');
+      svgEl.appendChild(dot);
+      const liveTxt=document.createElementNS(ns,'text');
+      liveTxt.setAttribute('x',cx); liveTxt.setAttribute('y',bodyT-4);
+      liveTxt.setAttribute('text-anchor','middle'); liveTxt.setAttribute('font-size','8');
+      liveTxt.setAttribute('fill',act.body); liveTxt.setAttribute('font-weight','600');
+      liveTxt.textContent='LIVE';
+      svgEl.appendChild(liveTxt);
+    }
+
+    // Time label (every other candle, or all if ≤8)
+    if (i%2===0||candles.length<=8) {
+      const lbl=document.createElementNS(ns,'text');
+      lbl.setAttribute('x',cx); lbl.setAttribute('y',H-6);
+      lbl.setAttribute('text-anchor','middle'); lbl.setAttribute('font-size','8.5');
+      lbl.setAttribute('fill','#888780'); lbl.textContent=c.label;
+      svgEl.appendChild(lbl);
+    }
+  });
+
+  // Y-axis overlay
+  const yAxisId=svgId==='svgBear'?'svgBearYAxis':'svgBullYAxis';
+  const strikeTicks=Array.from({length:4},(_,i)=>parseFloat((yMax-i*(yMax-yMin)/3).toFixed(1)));
+  drawYAxisOverlay(yAxisId,H,padL,padT,padB,yMin,yMax,strikeTicks);
+  document.getElementById(yAxisId).style.height=H+'px';
+
+  // Last-price dashed line — always prefer real LTP for the label even if candles use spot
+  const lastC=candles[candles.length-1];
+  const lastP=getLtpClose(lastC) || getPC(lastC);
+  if (lastP) {
+    const curY=yS(lastP);
+    const dl=document.createElementNS(ns,'line');
+    dl.setAttribute('x1',padL); dl.setAttribute('x2',padL+aW);
+    dl.setAttribute('y1',curY); dl.setAttribute('y2',curY);
+    dl.setAttribute('stroke','#378ADD'); dl.setAttribute('stroke-width','0.8');
+    dl.setAttribute('stroke-dasharray','3,2');
+    svgEl.appendChild(dl);
+    const pt=document.createElementNS(ns,'text');
+    pt.setAttribute('x',padL+aW-2); pt.setAttribute('y',curY-3);
+    pt.setAttribute('text-anchor','end'); pt.setAttribute('font-size','9');
+    pt.setAttribute('fill','#185FA5'); pt.textContent=lastP.toFixed(1);
+    svgEl.appendChild(pt);
+  }
+
+  // Activity badge
+  if (actBadgeId&&actSigs.length) {
+    const latestAct=ACT_COLOR[actSigs[actSigs.length-1]];
+    const badge=document.getElementById(actBadgeId);
+    if (badge) { badge.textContent=latestAct.label+' — '+latestAct.desc; badge.className='activity-badge '+latestAct.cls; }
+  }
+  return actSigs;
+}
+
+function updateConfluenceSummary(c1, c3, bearSigs, bullSigs) {
+  const candles = c1; // use s1 candles for time reference
+  if (!candles.length) return;
+  const last=candles[candles.length-1];
+  const bKey=bearSigs[bearSigs.length-1]||'N';
+  const uKey=bullSigs[bullSigs.length-1]||'N';
+  const bAct=ACT_COLOR[bKey]||ACT_COLOR['N'];
+  const uAct=ACT_COLOR[uKey]||ACT_COLOR['N'];
+  const priceUp=last.close>last.open, priceDown=last.close<last.open;
+  const pDir=priceUp?'up':priceDown?'down':'flat';
+
+  document.getElementById('conf-sum-title').textContent='Confluence reading — '+last.label+' (Crude Oil price '+pDir+')';
+
+  const bBadge=document.getElementById('bear-sum-badge');
+  bBadge.textContent=bAct.label;
+  bBadge.className='conf-sum-badge activity-badge '+bAct.cls;
+
+  const uBadge=document.getElementById('bull-sum-badge');
+  uBadge.textContent=uAct.label;
+  uBadge.className='conf-sum-badge activity-badge '+uAct.cls;
+
+  document.getElementById('bear-sum-text').textContent=bAct.desc;
+  document.getElementById('bull-sum-text').textContent=uAct.desc;
+  document.getElementById('conf-interp').innerHTML='<span style="font-weight:500;color:#1a1a1a;">Interpretation:</span> '+getActivityConfluence(bKey,uKey);
+
+  const fix = k => k.replace('act-','cb-').replace('cb-lb','cb-sg').replace('cb-sb','cb-sb').replace('cb-sc','cb-wb').replace('cb-lu','cb-wg').replace('cb-n','cb-n');
+  const bBox=document.getElementById('bear-conf-badge');
+  bBox.textContent=bAct.label+' — '+bAct.desc; bBox.className='conf-badge '+fix(bAct.cls);
+  const uBox=document.getElementById('bull-conf-badge');
+  uBox.textContent=uAct.label+' — '+uAct.desc; uBox.className='conf-badge '+fix(uAct.cls);
+}
+
+function getActivityConfluence(bKey, uKey) {
+  if (bKey==='LB'&&uKey==='LB') return 'Both strikes Long Buildup 🔥 — strongest bullish signal.';
+  if (bKey==='SB'&&uKey==='SB') return 'Both strikes Short Buildup 🔥 — strongest bearish signal.';
+  if ((bKey==='LB'||bKey==='SC')&&(uKey==='LB'||uKey==='SC')) return 'Both strikes bullish — upward momentum likely.';
+  if ((bKey==='SB'||bKey==='LU')&&(uKey==='SB'||uKey==='LU')) return 'Both strikes bearish — downward momentum likely.';
+  if (bKey==='SC') return 'Short Covering on top strike ⚠️ — shorts exiting, weak bullish.';
+  if (bKey==='LU') return 'Long Unwinding on top strike ⚠️ — longs exiting, weak bearish.';
+  if (uKey==='SC') return 'Short Covering on bottom strike ⚠️ — weak bullish.';
+  if (uKey==='LU') return 'Long Unwinding on bottom strike ⚠️ — weak bearish.';
+  return 'Mixed or neutral activity — no strong directional bias.';
+}
+
+// ── OI BAR CHARTS ─────────────────────────────────────────────────
+const GRID='rgba(136,135,128,0.12)', TCLR='#999';
+const OI_YAXIS_W = 52;
+
+function oiChartOptions() {
+  return {
+    responsive:false, maintainAspectRatio:false,
+    layout:{padding:{top:4,bottom:4,left:0,right:24}},
+    plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>ctx.dataset.label+': '+fmtD(ctx.raw)}}},
+    scales:{
+      x:{
+        grid:{display:false},
+        ticks:{
+          color:TCLR, font:{size:10},
+          autoSkip:false, maxRotation:90, minRotation:90,
+          callback:function(val,idx){
+            const labels=this.chart.data.labels;
+            const n=labels.length;
+            if(!n) return '';
+            const lbl=this.getLabelForValue(val);
+            if(!lbl) return '';
+            if(idx===0||idx===n-1) return lbl;
+            // at 90deg each label takes ~10px horizontally
+            const plotW=this.chart.chartArea?.width||600;
+            const step=Math.max(1,Math.round(n/Math.floor(plotW/10)));
+            return idx%step===0?lbl:'';
+          }
+        }
+      },
+      y:{display:false}
+    },
+    animation:{duration:250}
+  };
+}
+
+function drawStickyYAxis(chartInstance, overlayCanvasId) {
+  if (!chartInstance) return;
+  const chart=chartInstance;
+  const h=chart.height;
+  const plotTop=chart.chartArea?.top??4;
+  const plotBot=chart.chartArea?.bottom??(h-4);
+  const yMin=chart.scales.y?.min??0;
+  const yMax=chart.scales.y?.max??1;
+
+  const c=document.getElementById(overlayCanvasId);
+  if (!c) return;
+  c.width=OI_YAXIS_W; c.height=h;
+  c.style.width=OI_YAXIS_W+'px'; c.style.height=h+'px';
+
+  const ctx=c.getContext('2d');
+  ctx.clearRect(0,0,OI_YAXIS_W,h);
+  ctx.fillStyle='#fff'; ctx.fillRect(0,0,OI_YAXIS_W,h);
+
+  const range=yMax-yMin;
+  const rawStep=range/6;
+  const mag=Math.pow(10,Math.floor(Math.log10(Math.abs(rawStep)||1)));
+  const step=Math.ceil(rawStep/mag)*mag||mag;
+  const tickStart=Math.ceil(yMin/step)*step;
+
+  const toPx=v=>plotTop+(1-(v-yMin)/(yMax-yMin))*(plotBot-plotTop);
+
+  ctx.font='10px system-ui,sans-serif';
+  ctx.textAlign='right'; ctx.textBaseline='middle';
+
+  for (let v=tickStart;v<=yMax+step*0.01;v+=step) {
+    const y=toPx(v);
+    if (y<plotTop-2||y>plotBot+2) continue;
+    ctx.strokeStyle=GRID; ctx.lineWidth=0.5;
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(OI_YAXIS_W-5,y); ctx.stroke();
+    ctx.fillStyle=TCLR;
+    ctx.fillText((v>=0?'+':'')+Math.round(v/1000)+'k', OI_YAXIS_W-7, y);
+  }
+
+  const z=toPx(0);
+  if (z>=plotTop&&z<=plotBot) {
+    ctx.strokeStyle='#999'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(0,z); ctx.lineTo(OI_YAXIS_W-4,z); ctx.stroke();
+  }
+
+  ctx.strokeStyle='#ddd'; ctx.lineWidth=0.5;
+  ctx.beginPath(); ctx.moveTo(OI_YAXIS_W-0.5,0); ctx.lineTo(OI_YAXIS_W-0.5,h); ctx.stroke();
+}
+
+function makeDS(label,data,colors){return{label,data,backgroundColor:colors,borderRadius:3,barPercentage:0.95,categoryPercentage:0.9};}
+
+function setCanvas(id,w,h){
+  const c=document.getElementById(id);
+  c.width=w; c.height=h; c.style.width=w+'px'; c.style.height=h+'px';
+  return c;
+}
+
+function scrollToLatest() {
+  ['index-scroll','bear-conf-scroll','bull-conf-scroll','s1-scroll','s2-scroll','s3-scroll'].forEach(id=>{
+    const el=document.getElementById(id);
+    if (el) el.scrollLeft=el.scrollWidth;
+  });
+}
+
+// ── CUMULATIVE OI CHANGE CHART ────────────────────────────────────
+function drawCumOIChart(rows) {
+  const svgEl=document.getElementById('svgCumOI');
+  const scrollEl=document.getElementById('cumoi-scroll');
+  if (!svgEl) return;
+  svgEl.innerHTML='';
+  if (!rows.length) { svgEl.setAttribute('height','60'); return; }
+
+  const points=[]; let cumCe=0, cumPe=0;
+  rows.forEach(r=>{
+    let ce=0, pe=0;
+    Object.keys(r).forEach(k=>{
+      if (k.endsWith('_ce_delta')) ce+=parseFloat(r[k])||0;
+      if (k.endsWith('_pe_delta')) pe+=parseFloat(r[k])||0;
+    });
+    cumCe+=ce; cumPe+=pe;
+    points.push({label:r.time_label, ce:cumCe, pe:cumPe});
+  });
+
+  const lastCe=points[points.length-1].ce;
+  const lastPe=points[points.length-1].pe;
+  const fmtOI=v=>{const a=Math.abs(v);const s=a>=1e7?(v/1e7).toFixed(2)+' Cr':a>=1e5?(v/1e5).toFixed(1)+' L':Math.round(v).toLocaleString('en-IN');return(v>0?'+':'')+s;};
+  const ceEl=document.getElementById('cumoi-ce-total');
+  const peEl=document.getElementById('cumoi-pe-total');
+  if (ceEl){ceEl.textContent=fmtOI(lastCe);ceEl.style.color=lastCe>0?'#D85A30':'#1D9E75';}
+  if (peEl){peEl.textContent=fmtOI(lastPe);peEl.style.color=lastPe>0?'#1D9E75':'#D85A30';}
+  const pcrEl=document.getElementById('cumoi-pcr');
+  if (pcrEl){
+    let tCeOI=0,tPeOI=0;
+    const last=rows[rows.length-1];
+    Object.keys(last).forEach(k=>{
+      if(k.endsWith('_ce_oi'))tCeOI+=parseFloat(last[k])||0;
+      if(k.endsWith('_pe_oi'))tPeOI+=parseFloat(last[k])||0;
+    });
+    pcrEl.textContent=tCeOI>0?(tPeOI/tCeOI).toFixed(2):'—';
+  }
+
+  const containerW=scrollEl?scrollEl.offsetWidth:700;
+  const H=INDEX_H+40;
+  const slotPx=Math.max(INDEX_CANDLE_W+4,8);
+  const W=Math.max(points.length*slotPx+60,containerW);
+  svgEl.setAttribute('width',W); svgEl.setAttribute('height',H);
+  svgEl.setAttribute('viewBox',`0 0 ${W} ${H}`);
+  svgEl.parentElement.style.width=W+'px';
+
+  const padL=8,padR=60,padT=10,padB=32;
+  const aW=W-padL-padR, aH=H-padT-padB;
+  const ns='http://www.w3.org/2000/svg';
+
+  const allVals=points.flatMap(p=>[p.ce,p.pe]);
+  const rawMin=Math.min(...allVals), rawMax=Math.max(...allVals);
+  const pad=Math.max(Math.abs(rawMax-rawMin)*0.08,1000);
+  const yMin=rawMin-pad, yMax=rawMax+pad;
+  const yS=v=>padT+aH*(1-(v-yMin)/(yMax-yMin));
+  const xOf=i=>padL+(i+0.5)*(aW/points.length);
+
+  const fmtY=v=>{const a=Math.abs(v);if(a>=1e7)return(v/1e7).toFixed(1)+' Cr';if(a>=1e5)return(v/1e5).toFixed(1)+' L';return Math.round(v).toLocaleString('en-IN');};
+
+  const tickCount=5;
+  for (let i=0;i<=tickCount;i++){
+    const v=yMin+i*(yMax-yMin)/tickCount;
+    const y=yS(v);
+    const gl=document.createElementNS(ns,'line');
+    gl.setAttribute('x1',padL); gl.setAttribute('x2',padL+aW);
+    gl.setAttribute('y1',y); gl.setAttribute('y2',y);
+    gl.setAttribute('stroke','rgba(136,135,128,0.15)'); gl.setAttribute('stroke-width','0.5');
+    svgEl.appendChild(gl);
+  }
+
+  if (yMin<0&&yMax>0){
+    const y0=yS(0);
+    const zl=document.createElementNS(ns,'line');
+    zl.setAttribute('x1',padL); zl.setAttribute('x2',padL+aW);
+    zl.setAttribute('y1',y0); zl.setAttribute('y2',y0);
+    zl.setAttribute('stroke','rgba(136,135,128,0.4)'); zl.setAttribute('stroke-width','1');
+    zl.setAttribute('stroke-dasharray','4 2'); svgEl.appendChild(zl);
+  }
+
+  const buildArea=(vals,color)=>{
+    const y0c=Math.min(Math.max(yS(0),padT),padT+aH);
+    let d=`M${xOf(0)},${y0c}`;
+    vals.forEach((v,i)=>{d+=` L${xOf(i)},${yS(v)}`;});
+    d+=` L${xOf(vals.length-1)},${y0c} Z`;
+    const path=document.createElementNS(ns,'path');
+    path.setAttribute('d',d); path.setAttribute('fill',color); path.setAttribute('opacity','0.12');
+    svgEl.appendChild(path);
+  };
+
+  const buildLine=(vals,color)=>{
+    let d=`M${xOf(0)},${yS(vals[0])}`;
+    for(let i=1;i<vals.length;i++) d+=` L${xOf(i)},${yS(vals[i])}`;
+    const path=document.createElementNS(ns,'path');
+    path.setAttribute('d',d); path.setAttribute('fill','none');
+    path.setAttribute('stroke',color); path.setAttribute('stroke-width','1.8');
+    path.setAttribute('stroke-linejoin','round');
+    svgEl.appendChild(path);
+  };
+
+  const ceVals=points.map(p=>p.ce), peVals=points.map(p=>p.pe);
+  buildArea(ceVals,'#1D9E75'); buildArea(peVals,'#D85A30');
+  buildLine(ceVals,'#1D9E75'); buildLine(peVals,'#D85A30');
+
+  [[ceVals,'#1D9E75'],[peVals,'#D85A30']].forEach(([vals,color])=>{
+    const lx=xOf(vals.length-1), ly=yS(vals[vals.length-1]);
+    const dot=document.createElementNS(ns,'circle');
+    dot.setAttribute('cx',lx); dot.setAttribute('cy',ly); dot.setAttribute('r','3');
+    dot.setAttribute('fill',color); svgEl.appendChild(dot);
+    const lbl=document.createElementNS(ns,'text');
+    lbl.setAttribute('x',lx+5); lbl.setAttribute('y',ly+4);
+    lbl.setAttribute('font-size','9'); lbl.setAttribute('fill',color);
+    lbl.textContent=fmtY(vals[vals.length-1]); svgEl.appendChild(lbl);
+  });
+
+  const targetLabels=Math.max(4,Math.floor(aW/60));
+  const step=Math.max(1,Math.floor(points.length/targetLabels));
+  const labelIndices=new Set();
+  for(let i=0;i<points.length;i+=step) labelIndices.add(i);
+  labelIndices.add(points.length-1);
+
+  points.forEach((p,i)=>{
+    if(!labelIndices.has(i)) return;
+    const x=xOf(i);
+    const tick=document.createElementNS(ns,'line');
+    tick.setAttribute('x1',x); tick.setAttribute('x2',x);
+    tick.setAttribute('y1',padT+aH); tick.setAttribute('y2',padT+aH+4);
+    tick.setAttribute('stroke','rgba(136,135,128,0.4)'); tick.setAttribute('stroke-width','1');
+    svgEl.appendChild(tick);
+    const txt=document.createElementNS(ns,'text');
+    txt.setAttribute('x',x); txt.setAttribute('y',padT+aH+6);
+    txt.setAttribute('text-anchor','end'); txt.setAttribute('font-size','9');
+    txt.setAttribute('fill','#888780');
+    txt.setAttribute('transform',`rotate(-45, ${x}, ${padT+aH+6})`);
+    txt.textContent=p.label; svgEl.appendChild(txt);
+  });
+
+  const yAxisSvg=document.getElementById('svgCumOIYAxis');
+  if (yAxisSvg){
+    yAxisSvg.innerHTML='';
+    const overlayW=padR;
+    yAxisSvg.setAttribute('width',overlayW); yAxisSvg.setAttribute('height',H);
+    yAxisSvg.style.left='auto'; yAxisSvg.style.right='0';
+    yAxisSvg.style.position='absolute'; yAxisSvg.style.top='0';
+    for(let i=0;i<=tickCount;i++){
+      const v=yMin+i*(yMax-yMin)/tickCount;
+      const y=yS(v);
+      const txt=document.createElementNS(ns,'text');
+      txt.setAttribute('x',4); txt.setAttribute('y',y+4);
+      txt.setAttribute('text-anchor','start'); txt.setAttribute('font-size','9');
+      txt.setAttribute('fill','#888780'); txt.textContent=fmtY(v);
+      yAxisSvg.appendChild(txt);
+    }
+  }
+}
+
+// ── OI MOVERS PANEL ──────────────────────────────────────────────
+function drawOIMovers(rows, atmStr) {
+  const ceListEl=document.getElementById('ce-movers-list');
+  const peListEl=document.getElementById('pe-movers-list');
+  const subEl=document.getElementById('movers-sub');
+  if (!ceListEl||!peListEl) return;
+  if (!rows||!rows.length){
+    ceListEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:8px 0;">No data yet</div>';
+    peListEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:8px 0;">No data yet</div>';
+    ['movers-ce-total','movers-pe-total','movers-pcr'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent='—';});
+    return;
+  }
+
+  const cleanRows=[...rows].filter(r=>r&&(parseFloat(r.ts)||0)>0).sort((a,b)=>(parseFloat(a.ts)||0)-(parseFloat(b.ts)||0));
+  if (!cleanRows.length){
+    ceListEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:8px 0;">No valid rows yet</div>';
+    peListEl.innerHTML='<div style="color:#aaa;font-size:12px;padding:8px 0;">No valid rows yet</div>';
+    return;
+  }
+
+  const buckets=[];
+  cleanRows.forEach(r=>{
+    const ts=parseFloat(r.ts)||0;
+    const bucket=Math.floor(ts/(intervalMin*60))*(intervalMin*60);
+    if(!buckets.length||buckets[buckets.length-1].bucket!==bucket){
+      buckets.push({bucket,label:r.time_label,rows:[r]});
+    } else { buckets[buckets.length-1].rows.push(r); }
+    buckets[buckets.length-1].label=r.time_label;
+  });
+
+  function fmtOIShort(v){const n=Number(v)||0;const a=Math.abs(n);if(a>=1e7)return(n/1e7).toFixed(2)+' Cr';if(a>=1e5)return(n/1e5).toFixed(1)+' L';return Math.round(n).toLocaleString('en-IN');}
+  function fmtDeltaShort(v){const n=Number(v)||0;return(n>0?'+':'')+fmtOIShort(n);}
+
+  function collectSide(rowsInBucket,side){
+    const sideLower=side.toLowerCase();
+    const strikes={};
+    rowsInBucket.forEach(r=>{
+      Object.keys(r).forEach(k=>{
+        const deltaM=k.match(new RegExp('^s(\\d+)_'+sideLower+'_delta$'));
+        const oiM=k.match(new RegExp('^s(\\d+)_'+sideLower+'_oi$'));
+        if(deltaM){const strike=Number(deltaM[1]);if(!strikes[strike])strikes[strike]={strike,delta:0,oi:0};strikes[strike].delta+=parseFloat(r[k])||0;}
+        if(oiM){const strike=Number(oiM[1]);if(!strikes[strike])strikes[strike]={strike,delta:0,oi:0};strikes[strike].oi=parseFloat(r[k])||0;}
+      });
+    });
+    const arr=Object.values(strikes).filter(x=>x.delta!==0);
+    const added=arr.filter(x=>x.delta>0).sort((a,b)=>b.delta-a.delta)[0]||null;
+    const decreased=arr.filter(x=>x.delta<0).sort((a,b)=>a.delta-b.delta)[0]||null;
+    return{added,decreased,strikes};
+  }
+
+  const results=buckets.map(b=>{
+    const ce=collectSide(b.rows,'CE');
+    const pe=collectSide(b.rows,'PE');
+    const lastRow=b.rows[b.rows.length-1];
+    const spot=parseFloat(lastRow?.spot_close)||parseFloat(lastRow?.spot)||0;
+    return{bucket:b.bucket,label:b.label,spot,ce,pe};
+  });
+
+  function rowHtml(timeLabel,moveLabel,item,spot){
+    if(!item)return`<div class="mover-row"><span class="mover-time">${timeLabel}</span><span class="mover-action">${moveLabel}</span><span style="color:#aaa;font-size:12px;">No move</span></div>`;
+    const color=item.delta>0?'#1D9E75':'#D85A30';
+    const spotLabel=spot?`<span class="mover-type-badge badge-otm" style="background:#f8f8f5;color:#888;font-weight:400;">Spot ${fmt(spot)}</span>`:'';
+    return`<div class="mover-row"><span class="mover-time">${timeLabel}</span><span class="mover-action">${moveLabel}</span><span class="mover-strike">${item.strike.toLocaleString('en-IN')}</span>${spotLabel}<span class="mover-delta" style="color:${color};">${fmtDeltaShort(item.delta)}</span><span class="mover-oi">${fmtOIShort(item.oi)} OI</span></div>`;
+  }
+
+  function renderSide(side){
+    const html=results.map(r=>{
+      const moves=side==='CE'?r.ce:r.pe;
+      return`${rowHtml(r.label,'Add',moves.added,r.spot)}${rowHtml('','Dec',moves.decreased,r.spot)}`;
+    }).join('');
+    return html||'<div style="color:#aaa;font-size:12px;padding:8px 0;">No OI moves yet</div>';
+  }
+
+  ceListEl.innerHTML=renderSide('CE');
+  peListEl.innerHTML=renderSide('PE');
+
+  const latest=results[results.length-1];
+  let tCeDelta=0,tPeDelta=0,tCeOI=0,tPeOI=0;
+  if(latest){
+    Object.values(latest.ce.strikes).forEach(v=>{tCeDelta+=v.delta;tCeOI+=v.oi;});
+    Object.values(latest.pe.strikes).forEach(v=>{tPeDelta+=v.delta;tPeOI+=v.oi;});
+  }
+
+  const ceT=document.getElementById('movers-ce-total');
+  const peT=document.getElementById('movers-pe-total');
+  const pcr=document.getElementById('movers-pcr');
+  if(ceT){ceT.textContent=fmtDeltaShort(tCeDelta);ceT.style.color=tCeDelta>=0?'#D85A30':'#1D9E75';}
+  if(peT){peT.textContent=fmtDeltaShort(tPeDelta);peT.style.color=tPeDelta>=0?'#1D9E75':'#D85A30';}
+  if(pcr)pcr.textContent=tCeOI>0?(tPeOI/tCeOI).toFixed(2):'—';
+  if(subEl)subEl.textContent=`Dominant OI added/decreased for every ${intervalMin}-min interval · latest ${latest?.label||'—'}`;
+}
+
+// ── OPTION CHAIN ──────────────────────────────────────────────────
+// Stores latest LTP snapshot keyed by "s{strike}_{ce|pe}"
+const ocLtpCache     = {};  // { "s24000_ce": {ltp, prev}, ... }
+const ocOICache      = {};  // { "s24000_ce": current OI, ... }
+const ocOIDeltaCache = {};  // { "s24000_ce": CHG OI since session start, ... }
+const ocOIBaseCache  = {};  // { "s24000_ce": session-START OI — set once, never overwritten }
+
+function fmtOI(v) {
+  if (!v && v !== 0) return '—';
+  if (v >= 1e5) return (v/1e5).toFixed(2)+' L';
+  if (v >= 1e3) return (v/1e3).toFixed(1)+' K';
+  return Math.round(v).toLocaleString('en-IN');
+}
+
+function fmtLtp(v) {
+  if (!v && v !== 0) return '—';
+  return parseFloat(v).toFixed(2);
+}
+
+
+function getOCDelta(st, type) {
+  const key = 's' + st + '_' + type;
+  // Return cached delta (always baseline-anchored via _recomputeDelta)
+  if (ocOIDeltaCache[key] != null) return ocOIDeltaCache[key];
+  // If not yet seeded, try to compute on demand
+  _seedOIDeltaFromHistory(key);
+  return ocOIDeltaCache[key] || 0;
+}
+
+function fmtDeltaOI(v) {
+  if (!v && v !== 0) return '—';
+  if (Math.abs(v) < 1) return '—';
+  const sign = v > 0 ? '+' : '-';
+  return sign + fmtOI(Math.abs(v));
+}
+
+function renderOptionChain() {
+  if (!allStrikes.length) return;
+
+  const depthSel = document.getElementById('oc-depth');
+  const depth    = parseInt(depthSel?.value) || 8;
+  const atm      = atmStrike;
+
+  // Determine which strikes to show (high → low)
+  let strikes = [...allStrikes].sort((a,b)=>b-a);
+  if (depth > 0 && atm) {
+    const atmIdx = strikes.indexOf(atm);
+    if (atmIdx >= 0) {
+      const lo = Math.max(0, atmIdx - depth);
+      const hi = Math.min(strikes.length - 1, atmIdx + depth);
+      strikes = strikes.slice(lo, hi + 1);
+    }
+  }
+
+  // Find max OI for bar scaling
+  let maxCeOI = 1, maxPeOI = 1;
+  strikes.forEach(st => {
+    const c = ocOICache['s'+st+'_ce'] || 0;
+    const p = ocOICache['s'+st+'_pe'] || 0;
+    if (c > maxCeOI) maxCeOI = c;
+    if (p > maxPeOI) maxPeOI = p;
+  });
+
+  const spot = currentSpot;
+
+  const rows = strikes.map(st => {
+    const ceKey = 's'+st+'_ce';
+    const peKey = 's'+st+'_pe';
+    const ceLtp  = ocLtpCache[ceKey]?.ltp  || 0;
+    const peLtp  = ocLtpCache[peKey]?.ltp  || 0;
+    const ceOI   = ocOICache[ceKey]  || 0;
+    const peOI   = ocOICache[peKey]  || 0;
+    const ceOIDelta = getOCDelta(st, 'ce');
+    const peOIDelta = getOCDelta(st, 'pe');
+    const cePrev = ocLtpCache[ceKey]?.prev || 0;
+    const pePrev = ocLtpCache[peKey]?.prev || 0;
+
+    const isATM   = st === atm;
+    // In descending order: ITM calls = strike > spot; ITM puts = strike < spot
+    const isITMcall = spot && st > spot;
+    const isITMput  = spot && st < spot;
+
+    // LTP change %
+    const ceChgPct = cePrev > 0 ? ((ceLtp - cePrev) / cePrev * 100) : 0;
+    const peChgPct = pePrev > 0 ? ((peLtp - pePrev) / pePrev * 100) : 0;
+
+    const ceBarW = maxCeOI > 0 ? Math.round(ceOI / maxCeOI * 100) : 0;
+    const peBarW = maxPeOI > 0 ? Math.round(peOI / maxPeOI * 100) : 0;
+
+    const rowCls = isATM ? 'oc-atm-row' : '';
+    const tdCallCls = 'oc-td oc-td-call' + (isITMcall ? ' oc-itm-call' : '');
+    const tdPutCls  = 'oc-td oc-td-put'  + (isITMput  ? ' oc-itm-put'  : '');
+    const tdStrCls  = 'oc-td oc-td-strike' + (isATM ? ' oc-atm-line' : '');
+
+    const ceChgHtml = cePrev > 0 ? `<span class="oc-chg ${ceChgPct>=0?'up':'dn'}">${ceChgPct>=0?'+':''}${ceChgPct.toFixed(1)}%</span>` : '';
+    const peChgHtml = pePrev > 0 ? `<span class="oc-chg ${peChgPct>=0?'up':'dn'}">${peChgPct>=0?'+':''}${peChgPct.toFixed(1)}%</span>` : '';
+    const ceDeltaCls = ceOIDelta > 0 ? 'dup' : (ceOIDelta < 0 ? 'ddn' : 'dfl');
+    const peDeltaCls = peOIDelta > 0 ? 'dup' : (peOIDelta < 0 ? 'ddn' : 'dfl');
+
+    // Time Value = LTP - Intrinsic Value
+    // CE intrinsic = max(0, spot - strike); PE intrinsic = max(0, strike - spot)
+    const ceIV  = spot ? Math.max(0, spot - st) : 0;
+    const peIV  = spot ? Math.max(0, st - spot)  : 0;
+    const ceTV  = ceLtp > 0 ? Math.max(0, ceLtp - ceIV) : 0;
+    const peTV  = peLtp > 0 ? Math.max(0, peLtp - peIV) : 0;
+    const ceTVHtml = ceLtp > 0 ? `<span id="oc-tv-ce-${st}" class="oc-tv${ceIV > 0 ? ' oc-tv-high' : ''}">${fmtLtp(ceTV)}</span>` : `<span id="oc-tv-ce-${st}" class="oc-tv">—</span>`;
+    const peTVHtml = peLtp > 0 ? `<span id="oc-tv-pe-${st}" class="oc-tv${peIV > 0 ? ' oc-tv-high' : ''}">${fmtLtp(peTV)}</span>` : `<span id="oc-tv-pe-${st}" class="oc-tv">—</span>`;
+
+    return `<tr class="${rowCls}" data-strike="${st}">
+      <td class="${tdCallCls}" style="text-align:right;">
+        <div class="oc-oi-wrap" style="justify-content:flex-end;">
+          <div class="oc-oi-bar-outer" style="direction:rtl;">
+            <div class="oc-oi-bar-inner oc-bar-call" style="width:${ceBarW}%;"></div>
+          </div>
+          <span class="oc-oi-num">${fmtOI(ceOI)}</span>
+        </div>
+      </td>
+      <td class="${tdCallCls}" style="text-align:right;"><span class="${ceDeltaCls}">${fmtDeltaOI(ceOIDelta)}</span></td>
+      <td class="${tdCallCls}" style="text-align:right;">${ceTVHtml}</td>
+      <td class="${tdCallCls}" style="text-align:right;padding-right:14px;">
+        <span class="oc-ltp" id="oc-ce-${st}">${fmtLtp(ceLtp)}</span>${ceChgHtml}
+      </td>
+      <td class="${tdStrCls}">${st}</td>
+      <td class="${tdPutCls}" style="text-align:left;padding-left:14px;">
+        <span class="oc-ltp" id="oc-pe-${st}">${fmtLtp(peLtp)}</span>${peChgHtml}
+      </td>
+      <td class="${tdPutCls}" style="text-align:left;">${peTVHtml}</td>
+      <td class="${tdPutCls}" style="text-align:left;"><span class="${peDeltaCls}">${fmtDeltaOI(peOIDelta)}</span></td>
+      <td class="${tdPutCls}" style="text-align:left;">
+        <div class="oc-oi-wrap">
+          <span class="oc-oi-num">${fmtOI(peOI)}</span>
+          <div class="oc-oi-bar-outer">
+            <div class="oc-oi-bar-inner oc-bar-put" style="width:${peBarW}%;"></div>
+          </div>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('oc-body').innerHTML = rows || '<tr><td colspan="9" style="text-align:center;padding:20px;color:#aaa;">No data</td></tr>';
+
+  // Update meta
+  const atmTxt = atm ? atm : '—';
+  const spotTxt = spot ? fmt(spot) : '—';
+  document.getElementById('oc-meta').textContent = `Spot: ${spotTxt} · ATM: ${atmTxt} · ${strikes.length} strikes shown`;
+}
+
+function updateOptionChainOI(oiData) {
+  // Pull OI from /oi snapshot and update ocOICache.
+  // CHG OI is ALWAYS computed as: current OI minus session-start baseline (ocOIBaseCache).
+  // The baseline is set once from history rows and never changes during a session.
+  const opts = oiData.options || {};
+  Object.entries(opts).forEach(([key, v]) => {
+    if (v && v.oi != null) {
+      ocOICache[key] = pf(v.oi);
+      _recomputeDelta(key);
+    }
+  });
+
+  // Also try flat fields: s24000_ce_oi
+  Object.keys(oiData).forEach(k => {
+    const m = k.match(/^s(\d+)_(ce|pe)_oi$/);
+    if (m) {
+      const mapKey = 's'+m[1]+'_'+m[2];
+      ocOICache[mapKey] = pf(oiData[k]);
+      _recomputeDelta(mapKey);
+    }
+  });
+}
+
+// Seed the session-start OI baseline (called once after history loads).
+// ocOIBaseCache is NEVER overwritten after being set — it anchors all CHG OI calcs.
+function _seedOIDeltaFromHistory(key) {
+  if (!minuteRows || minuteRows.length < 1) return;
+
+  const first      = minuteRows[0];
+  const cur        = minuteRows[minuteRows.length - 1];
+  const oiField    = key + '_oi';
+  const deltaField = key + '_delta';
+
+  // Set baseline once — the OI at session open (first history row)
+  if (ocOIBaseCache[key] == null) {
+    const baseOI = pf(first[oiField]);
+    if (baseOI > 0) ocOIBaseCache[key] = baseOI;
+  }
+
+  // Compute current CHG OI = latest OI minus session-start baseline
+  _recomputeDelta(key);
+}
+
+// Recompute CHG OI for a key using the locked-in baseline
+function _recomputeDelta(key) {
+  const base = ocOIBaseCache[key];
+  if (base == null) return;
+
+  // Prefer live OI from ocOICache (most current); fall back to last history row
+  let currentOI = ocOICache[key];
+  if (currentOI == null && minuteRows && minuteRows.length) {
+    currentOI = pf(minuteRows[minuteRows.length - 1][key + '_oi']);
+  }
+  if (currentOI != null) {
+    ocOIDeltaCache[key] = currentOI - base;
+  }
+}
+
+function updateOptionChainLTP(ltpData) {
+  const opts = ltpData.options || {};
+  let anyChange = false;
+
+  Object.entries(opts).forEach(([key, v]) => {
+    if (!v || v.ltp == null) return;
+    const prev = ocLtpCache[key]?.ltp || 0;
+    const cur  = pf(v.ltp);
+
+    if (cur !== prev) {
+      ocLtpCache[key] = { ltp: cur, prev: prev || cur };
+      anyChange = true;
+
+      // Live tick update — flash without full re-render
+      const parts = key.match(/^s(\d+)_(ce|pe)$/);
+      if (parts) {
+        const st   = parseInt(parts[1]);
+        const type = parts[2];
+
+        // Update LTP cell
+        const ltpEl = document.getElementById('oc-'+type+'-'+st);
+        if (ltpEl) {
+          ltpEl.textContent = fmtLtp(cur);
+          const cls = cur > prev ? 'flash-up' : 'flash-down';
+          ltpEl.classList.add(cls);
+          setTimeout(() => ltpEl.classList.remove(cls), 600);
+        }
+
+        // ── Also update TV cell tick-by-tick ──────────────────────
+        // TV = LTP − Intrinsic Value
+        // CE intrinsic = max(0, spot − strike); PE intrinsic = max(0, strike − spot)
+        const tvEl = document.getElementById('oc-tv-'+type+'-'+st);
+        if (tvEl && currentSpot) {
+          const iv  = type === 'ce'
+            ? Math.max(0, currentSpot - st)
+            : Math.max(0, st - currentSpot);
+          const tv  = cur > 0 ? Math.max(0, cur - iv) : 0;
+          const isHighIV = iv > 0;
+          tvEl.textContent  = cur > 0 ? fmtLtp(tv) : '—';
+          tvEl.className    = 'oc-tv' + (isHighIV ? ' oc-tv-high' : '');
+        }
+      }
+    } else {
+      if (!ocLtpCache[key]) ocLtpCache[key] = { ltp: cur, prev: cur };
+    }
+  });
+
+  // Pulse indicator
+  if (anyChange) {
+    const pulse = document.getElementById('oc-pulse');
+    if (pulse) { pulse.classList.add('live'); setTimeout(()=>pulse.classList.remove('live'),1500); }
+  }
+}
+
+// ── INDEX TICKER (Option Chain tab) ──────────────────────────────
+let ocTickerSpotOpen = null;  // today's open for % change calc
+let ocExpiryDate = null;      // 'YYYY-MM-DD' from bridge
+
+function updateOCTicker(spot, expiryDate) {
+  // Spot value
+  const el = document.getElementById('oc-ticker-spot');
+  if (el && spot) {
+    const prev = parseFloat(el.dataset.prev || spot);
+    el.textContent = fmt(spot);
+    el.dataset.prev = spot;
+    if (spot !== prev) {
+      const cls = spot > prev ? 'flash-up' : 'flash-down';
+      el.classList.add(cls);
+      setTimeout(() => el.classList.remove(cls), 400);
+    }
+    // Live dot
+    const dot = document.getElementById('oc-ticker-dot');
+    if (dot) { dot.classList.add('live'); clearTimeout(dot._t); dot._t = setTimeout(()=>dot.classList.remove('live'), 2000); }
+  }
+
+  // % change from open
+  if (spot && ocTickerSpotOpen == null) ocTickerSpotOpen = spot;
+  if (spot && ocTickerSpotOpen) {
+    const chgEl = document.getElementById('oc-ticker-chg');
+    if (chgEl) {
+      const diff = spot - ocTickerSpotOpen;
+      const pct  = diff / ocTickerSpotOpen * 100;
+      chgEl.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(0) + ' (' + (pct >= 0 ? '+' : '') + pct.toFixed(2) + '%)';
+      chgEl.className = 'oc-ticker-chg ' + (diff >= 0 ? 'up' : 'dn');
+    }
+  }
+
+  // ATM
+  const atmEl = document.getElementById('oc-ticker-atm');
+  if (atmEl && atmStrike) atmEl.textContent = atmStrike.toLocaleString('en-IN');
+
+  // Expiry + DTE
+  if (expiryDate) ocExpiryDate = expiryDate;
+  if (ocExpiryDate) {
+    const expEl = document.getElementById('oc-ticker-expiry');
+    const dteEl = document.getElementById('oc-ticker-dte');
+    if (expEl) expEl.textContent = ocExpiryDate;
+    if (dteEl) {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const exp   = new Date(ocExpiryDate); exp.setHours(0,0,0,0);
+      const dte   = Math.round((exp - today) / 86400000);
+      dteEl.textContent = dte >= 0 ? dte : '—';
+    }
+  }
+
+  // Time (IST)
+  const timeEl = document.getElementById('oc-ticker-time');
+  if (timeEl) timeEl.textContent = new Date().toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'Asia/Kolkata'}) + ' IST';
+}
+
+// ── MAX PAIN ──────────────────────────────────────────────────────
+// Max Pain = strike where total OI loss for option buyers is maximised
+// i.e. the strike that causes the most financial pain to buyers at expiry
+function calcMaxPain(spot) {
+  const strikeList = Object.keys(ocOICache)
+    .map(k => { const m = k.match(/^s(\d+)_ce$/); return m ? parseInt(m[1]) : null; })
+    .filter(Boolean).sort((a,b) => a-b);
+
+  if (strikeList.length < 2) return;
+
+  // For each candidate expiry price P, compute total OI pain:
+  //   CE holders lose if P < strike → (strike - P) * CE_OI  (for strike > P)
+  //   PE holders lose if P > strike → (P - strike) * PE_OI  (for strike < P)
+  let minPain = Infinity, maxPainStrike = null;
+  const painByStrike = {};
+
+  strikeList.forEach(P => {
+    let totalPain = 0;
+    strikeList.forEach(st => {
+      const ceOI = ocOICache['s'+st+'_ce'] || 0;
+      const peOI = ocOICache['s'+st+'_pe'] || 0;
+      if (st > P) totalPain += (st - P) * ceOI;   // CE writers profit (buyers lose)
+      if (st < P) totalPain += (P - st) * peOI;   // PE writers profit
+    });
+    painByStrike[P] = totalPain;
+    if (totalPain < minPain) { minPain = totalPain; maxPainStrike = P; }
+  });
+
+  if (!maxPainStrike) return;
+
+  // ── TOP 3 MAX PAIN STRIKES (near ATM) ──────────────────────────
+  // "Max pain for sellers" = strikes where combined CE+PE OI is highest.
+  // Writers (sellers) of options at these strikes hold the largest open interest,
+  // so expiry near these strikes causes the most loss for option buyers.
+  // We rank all strikes by (CE OI + PE OI) descending, then show top 3.
+  const oiByStrike = strikeList.map(st => ({
+    st,
+    totalOI: (ocOICache['s'+st+'_ce'] || 0) + (ocOICache['s'+st+'_pe'] || 0)
+  }));
+  // Sort by total OI descending, take top 3
+  const top3 = oiByStrike.slice().sort((a,b) => b.totalOI - a.totalOI).slice(0,3);
+  // Sort the top 3 by strike value descending for display
+  top3.sort((a,b) => b.st - a.st);
+  const topPainEl = document.getElementById('oc-ticker-top-pain');
+  if (topPainEl) {
+    const fmtOIShort = v => {
+      if (v >= 1e7) return (v/1e7).toFixed(1)+' Cr';
+      if (v >= 1e5) return (v/1e5).toFixed(1)+' L';
+      if (v >= 1e3) return (v/1e3).toFixed(1)+' K';
+      return Math.round(v).toLocaleString('en-IN');
+    };
+    const bgColors  = ['#EEEDFE','#E1F5EE','#FAECE7'];
+    const txtColors = ['#534AB7','#085041','#712B13'];
+    topPainEl.innerHTML = top3.map((x, i) =>
+      `<span style="display:inline-flex;align-items:center;gap:4px;background:${bgColors[i]};color:${txtColors[i]};border-radius:6px;padding:2px 7px;font-size:11px;font-weight:500;white-space:nowrap;">` +
+      `<span style="font-weight:700;">${x.st.toLocaleString('en-IN')}</span>` +
+      `<span style="opacity:0.55;font-size:10px;font-weight:400;">${fmtOIShort(x.totalOI)}</span>` +
+      `</span>`
+    ).join('<span style="color:#ddd;margin:0 2px;">|</span>');
+  }
+
+  // Update UI
+  const mpStrikeEl = document.getElementById('mp-strike');
+  if (mpStrikeEl) mpStrikeEl.textContent = maxPainStrike.toLocaleString('en-IN');
+
+  const mpPainEl = document.getElementById('mp-total-pain');
+  if (mpPainEl) {
+    const v = minPain;
+    const s = v >= 1e12 ? (v/1e12).toFixed(2)+' T' : v >= 1e9 ? (v/1e9).toFixed(2)+' B' : v >= 1e7 ? (v/1e7).toFixed(2)+' Cr' : v >= 1e5 ? (v/1e5).toFixed(1)+' L' : Math.round(v).toLocaleString('en-IN');
+    mpPainEl.textContent = s;
+  }
+
+  const mpSubEl = document.getElementById('mp-sub');
+  if (mpSubEl) mpSubEl.textContent = `${strikeList.length} strikes · last updated ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}`;
+
+  if (spot) {
+    const diff = spot - maxPainStrike;
+    const el = document.getElementById('mp-spot-diff');
+    const sub = document.getElementById('mp-spot-diff-sub');
+    if (el) {
+      el.textContent = (diff >= 0 ? '+' : '') + diff.toFixed(0);
+      el.style.color = diff >= 0 ? '#D85A30' : '#1D9E75';
+    }
+    if (sub) sub.textContent = diff >= 0 ? 'Spot above max pain (bearish pull)' : 'Spot below max pain (bullish pull)';
+  }
+
+  // Update bar markers
+  const lo = strikeList[0], hi = strikeList[strikeList.length - 1];
+  const range = hi - lo || 1;
+  const mpPct = ((maxPainStrike - lo) / range * 100).toFixed(1);
+  const marker = document.getElementById('mp-marker');
+  if (marker) marker.style.left = mpPct + '%';
+
+  if (spot) {
+    const sPct = Math.min(100, Math.max(0, (spot - lo) / range * 100)).toFixed(1);
+    const sMarker = document.getElementById('mp-spot-marker');
+    if (sMarker) sMarker.style.left = sPct + '%';
+  }
+
+  const loEl = document.getElementById('mp-bar-lo');
+  const hiEl = document.getElementById('mp-bar-hi');
+  if (loEl) loEl.textContent = lo.toLocaleString('en-IN');
+  if (hiEl) hiEl.textContent = hi.toLocaleString('en-IN');
+}
+
+function scrollOCtoATM() {
+  const atm = atmStrike;
+  if (!atm) return;
+  const row = document.querySelector(`#oc-body tr[data-strike="${atm}"]`);
+  if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+// ── MAIN REBUILD ──────────────────────────────────────────────────
+function rebuildCharts() { requestAnimationFrame(_doRebuild); }
+
+function _doRebuild() {
+  if (selectedStrikes.some(s=>!s)) return;
+  const [s1, s2, s3] = selectedStrikes;
+
+  // Build per-strike candle arrays
+  const c1 = buildCandlesForStrike(minuteRows, intervalMin, s1);
+  const c2 = buildCandlesForStrike(minuteRows, intervalMin, s2);
+  const c3 = buildCandlesForStrike(minuteRows, intervalMin, s3);
+  latestCandles = [c1, c2, c3];
+
+  // Build merged candles for index chart
+  const merged = buildMergedCandles(minuteRows, intervalMin, s1, s2, s3);
+
+  const sub = intervalMin+'-min · '+minuteRows.length+' rows · session '+currentSession;
+  ['s1','s2','s3'].forEach(pfx => {
+    document.getElementById(pfx+'-chart-sub').textContent = sub;
+  });
+
+  document.getElementById('index-chart-sub').textContent = 'Crude Oil (MCX) · '+intervalMin+'m candles · colour = dominant OI move (top+bottom strikes)';
+
+  // Cumulative OI
+  drawCumOIChart(minuteRows);
+
+  // OI movers
+  drawOIMovers(minuteRows, atmStrike);
+
+  // Index chart (uses merged candles)
+  const mergedWithLive = liveCandle ? [...merged, liveCandle] : merged;
+  drawIndexChart(mergedWithLive);
+
+  // Confluence SVG charts (s1 CE = top strike lens, s3 PE = bottom strike lens)
+  const c1WithLive = liveCandle ? [...c1, liveCandle] : c1;
+  const c3WithLive = liveCandle ? [...c3, liveCandle] : c3;
+
+  const bearSigs = drawStrikeActivityChart('svgBear', c1WithLive,
+    c=>c.s1_bce_ltp_open||c.bce_ltp_open||0, c=>c.s1_bce_ltp_high||c.bce_ltp_high||0,
+    c=>c.s1_bce_ltp_low||c.bce_ltp_low||0,   c=>c.s1_bce_ltp_close||c.bce_ltp_close||0,
+    c=>c.s1_bce_oi_delta||c.bce_oi_delta||0, 'bear-activity-badge');
+  const bullSigs = drawStrikeActivityChart('svgBull', c3WithLive,
+    c=>c.s3_upe_ltp_open||c.upe_ltp_open||0, c=>c.s3_upe_ltp_high||c.upe_ltp_high||0,
+    c=>c.s3_upe_ltp_low||c.upe_ltp_low||0,   c=>c.s3_upe_ltp_close||c.upe_ltp_close||0,
+    c=>c.s3_upe_oi_delta||c.upe_oi_delta||0, 'bull-activity-badge');
+
+  buildStrip('bear-strip', bearSigs);
+  buildStrip('bull-strip', bullSigs);
+  if (c1.length) updateConfluenceSummary(c1, c3, bearSigs, bullSigs);
+
+  // ── THREE OI BAR CHARTS ──
+  const chartDefs = [
+    { candles:c1, strike:s1, pfx:'s1', chartId:'s1Chart', wrapId:'s1ChartWrap', scrollId:'s1-scroll', yAxisId:'s1YAxis' },
+    { candles:c2, strike:s2, pfx:'s2', chartId:'s2Chart', wrapId:'s2ChartWrap', scrollId:'s2-scroll', yAxisId:'s2YAxis' },
+    { candles:c3, strike:s3, pfx:'s3', chartId:'s3Chart', wrapId:'s3ChartWrap', scrollId:'s3-scroll', yAxisId:'s3YAxis' },
+  ];
+
+  chartDefs.forEach(({candles, strike, pfx, chartId, wrapId, scrollId, yAxisId}, idx) => {
+    if (!candles.length) return;
+
+    const labels = candles.map(c=>c.label);
+    const outerW = Math.floor(document.getElementById(scrollId)?.getBoundingClientRect().width||(window.innerWidth-80));
+    const oiW    = Math.max(candles.length*MIN_BAR_PX + 40, outerW);
+    const oiH    = OI_CHART_H;
+
+    document.getElementById(wrapId).style.width  = oiW+'px';
+    document.getElementById(wrapId).style.height = oiH+'px';
+    setCanvas(chartId, oiW, oiH);
+
+    const ceCol = candles.map(c=>c.dce>=0?'#D85A30':'#93c5e8');
+    const peCol = candles.map(c=>c.dpe>=0?'#1D9E75':'#f0a080');
+
+    if (chartInstances[idx]) { chartInstances[idx].destroy(); chartInstances[idx]=null; }
+
+    const opts = oiChartOptions();
+    opts.animation = { duration:250, onComplete: () => drawStickyYAxis(chartInstances[idx], yAxisId) };
+    chartInstances[idx] = new Chart(document.getElementById(chartId), {
+      type:'bar',
+      data:{labels, datasets:[makeDS('CE OI Δ',candles.map(c=>c.dce),ceCol), makeDS('PE OI Δ',candles.map(c=>c.dpe),peCol)]},
+      options:opts
+    });
+
+    // Net summary
+    const netCe = candles.reduce((s,c)=>s+c.dce,0);
+    const netPe = candles.reduce((s,c)=>s+c.dpe,0);
+    const setNet=(id,v)=>{const el=document.getElementById(id);if(el){el.textContent=fmtD(v);el.className='net-val '+dcls(v);}};
+    setNet(pfx+'-net-ce', netCe);
+    setNet(pfx+'-net-pe', netPe);
+    const scoreEl=document.getElementById(pfx+'-score');
+    if (scoreEl) {
+      const diff=netCe-netPe;
+      scoreEl.textContent=Math.abs(diff)<3000?'Neutral':diff>0?'CE building':'PE building';
+      scoreEl.className='net-val '+(diff>3000?'ddn':diff<-3000?'dup':'dfl');
+    }
+  });
+
+  scrollToLatest();
+  updateSpotBadges();
+}
+
+// ── TIMERS ────────────────────────────────────────────────────────
+let cdOI=POLL_OI_SEC, cdHX=POLL_HX_SEC;
+setInterval(()=>{
+  if (pollingSuspended) return;   // historical mode — no auto-refresh
+  cdOI--; cdHX--;
+  if (cdOI<=0) { cdOI=POLL_OI_SEC; fetchOI(); }
+  if (cdHX<=0) { cdHX=POLL_HX_SEC; fetchHistory(); }
+  document.getElementById('countdown').textContent=cdOI+'s';
+},1000);
+setInterval(()=>{ if (!pollingSuspended) fetchLTP(); }, POLL_LTP_SEC*1000);
+setInterval(()=>{ if (!pollingSuspended) fetchLiveCandle(); }, POLL_LIVE_SEC*1000);
+let resizeTimer;
+window.addEventListener('resize',()=>{clearTimeout(resizeTimer);resizeTimer=setTimeout(rebuildCharts,200);});
+
+// ── BOOT ──────────────────────────────────────────────────────────
+// Set date picker default to today in IST
+document.getElementById('date-picker').value = todayIST();
+document.getElementById('today-btn').classList.add('active');
+const _initBadge = document.getElementById('date-mode-badge');
+_initBadge.className = 'date-mode-badge live';
+_initBadge.textContent = '● Live';
+
+fetchAvailableDates();
+fetchOI().then(()=>fetchHistory());
+fetchLTP();
+fetchLiveCandle();
+</script>
+</body>
+</html>
